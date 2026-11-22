@@ -15,3 +15,5 @@ jobs:
         run: xcodebuild -version
       - name: Budowanie aplikacji dla symulatora
         run: xcodebuild -project Literkowo.xcodeproj -scheme Literkowo -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - name: Budowanie aplikacji dla fizycznego iPhone'a (bez podpisu)
+        run: xcodebuild -project Literkowo.xcodeproj -scheme Literkowo -destination 'generic/platform=iOS' -configuration Debug CODE_SIGNING_ALLOWED=NO build
