@@ -9,7 +9,6 @@ struct LetterPracticeView: View {
     @State private var currentPath: [CGPoint] = []
     @State private var showSaved = false
     @State private var selectedWord: String?
-    @State private var guideStep = 0
     private let synthesizer = AVSpeechSynthesizer()
 
     private var guideInstructions: [String] {
@@ -38,11 +37,11 @@ struct LetterPracticeView: View {
                     TimelineView(.periodic(from: .now, by: 1.6)) { context in
                         let activeStep = Int(context.date.timeIntervalSinceReferenceDate / 1.6) % guideInstructions.count
                         HStack(spacing: 8) {
-                            ForEach(0..<guideInstructions.count, id: \\.self) { index in
+                            ForEach(0..<guideInstructions.count, id: \.self) { index in
                                 Circle()
                                     .fill(index == activeStep ? Color.orange : Color.indigo.opacity(0.18))
                                     .frame(width: 28, height: 28)
-                                    .overlay(Text("\\(index + 1)").font(.caption.bold())
+                                    .overlay(Text("\(index + 1)").font(.caption.bold())
                                         .foregroundStyle(index == activeStep ? .white : .indigo))
                             }
                             Text(guideInstructions[activeStep])
