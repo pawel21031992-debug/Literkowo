@@ -2,7 +2,7 @@ name: Kontrola budowania iOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/literkowo-pwa ]
   pull_request:
     branches: [ main ]
 
