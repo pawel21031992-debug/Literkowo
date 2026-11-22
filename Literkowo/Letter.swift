@@ -6,6 +6,37 @@ struct Letter: Identifiable, Hashable {
     let example: String
     var id: String { character }
 
+    private var isVowel: Bool {
+        ["A", "Ą", "E", "Ę", "I", "O", "Ó", "U", "Y"].contains(character)
+    }
+
+    var syllables: [String] {
+        if isVowel { return [lowercase, "ma", "me", "mi", "mo", "mu"] }
+        return ["a", "e", "i", "o", "u", "y"].map { lowercase + $0 }
+    }
+
+    var words: [String] {
+        let extra: [String: [String]] = [
+            "A": ["auto", "aparat", "ananas"], "Ą": ["wąż", "kąt", "pąk"],
+            "B": ["balon", "but", "banan"], "C": ["cebula", "cukier", "cytryna"],
+            "Ć": ["ćma", "ćwiczyć", "ćwierć"], "D": ["dom", "dach", "droga"],
+            "E": ["ekran", "ekierka", "elf"], "Ę": ["gęś", "język", "mięta"],
+            "F": ["foka", "farba", "flet"], "G": ["gitara", "góra", "garnek"],
+            "H": ["hak", "hotel", "hamak"], "I": ["igła", "iskra", "indyk"],
+            "J": ["jabłko", "jeleń", "jajko"], "K": ["kot", "kura", "klocki"],
+            "L": ["lalka", "las", "lampa"], "Ł": ["łódka", "łąka", "łapa"],
+            "M": ["motyl", "mama", "miska"], "N": ["nos", "noga", "namiot"],
+            "Ń": ["koń", "słoń", "dłoń"], "O": ["oko", "okno", "owca"],
+            "Ó": ["ósmy", "ogórek", "ósemka"], "P": ["pies", "piłka", "pociąg"],
+            "R": ["rak", "rower", "ryba"], "S": ["sowa", "samolot", "ser"],
+            "Ś": ["ślimak", "świat", "świeca"], "T": ["tata", "tort", "tulipan"],
+            "U": ["ul", "ucho", "ubranie"], "W": ["woda", "wóz", "wiewiórka"],
+            "Y": ["yoyo", "dynia", "ryba"], "Z": ["zamek", "zebra", "zegar"],
+            "Ź": ["źrebak", "źródło", "gałąź"], "Ż": ["żaba", "żółw", "żyrafa"]
+        ]
+        return extra[character] ?? [example]
+    }
+
     static let polishAlphabet: [Letter] = [
         .init(character: "A", lowercase: "a", example: "auto"),
         .init(character: "Ą", lowercase: "ą", example: "ąka"),
