@@ -47,18 +47,8 @@ struct LetterPracticeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Wskazówka pisania", systemImage: "hand.draw")
                         .font(.headline)
-                    VStack(alignment: .leading, spacing: 9) {
-                        ForEach(Array(letter.writingInstructions.enumerated()), id: \.offset) { index, instruction in
-                            HStack(alignment: .top, spacing: 9) {
-                                Text("\(index + 1)")
-                                    .font(.caption.bold())
-                                    .foregroundStyle(.white)
-                                    .frame(width: 24, height: 24)
-                                    .background(Color.indigo, in: Circle())
-                                Text(instruction).font(.subheadline)
-                            }
-                        }
-                    }
+                    Text("Każdy numer oznacza jeden ruch. Zacznij przy pomarańczowym punkcie i prowadź palec zgodnie ze strzałką. Wykonuj ruchy po kolei.")
+                        .font(.subheadline)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -88,6 +78,18 @@ struct LetterPracticeView: View {
                                 context.fill(Path(ellipseIn: marker), with: .color(.orange))
                                 context.draw(Text("\(index + 1)").font(.system(size: 12, weight: .bold)).foregroundColor(.white),
                                              at: start)
+                                if stroke.count > 1 {
+                                    let segmentIndex = max(0, stroke.count / 2 - 1)
+                                    let arrowStart = stroke[segmentIndex]
+                                    let arrowEnd = stroke[min(segmentIndex + 1, stroke.count - 1)]
+                                    let arrowPoint = CGPoint(x: (arrowStart.x + arrowEnd.x) * size.width / 2,
+                                                             y: (arrowStart.y + arrowEnd.y) * size.height / 2)
+                                    let angle = atan2((arrowEnd.y - arrowStart.y) * size.height,
+                                                      (arrowEnd.x - arrowStart.x) * size.width)
+                                    context.draw(Text("➜").font(.system(size: 18, weight: .bold))
+                                        .foregroundColor(.orange)
+                                        .rotationEffect(.radians(Double(angle))), at: arrowPoint)
+                                }
                             }
                             for points in paths + [currentPath] {
                                 guard let first = points.first else { continue }
