@@ -1,0 +1,20 @@
+name: Kontrola PWA
+on:
+  push:
+    branches: [ main, feature/literkowo-pwa ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  pwa-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Sprawdź składnię JavaScript
+        run: node --check pwa/app.js
+      - name: Sprawdź manifest PWA
+        run: node -e "JSON.parse(require('fs').readFileSync('pwa/manifest.webmanifest','utf8')); console.log('Manifest JSON: OK')"
+      - name: Sprawdź wymagane pliki PWA
+        run: test -s pwa/index.html && test -s pwa/styles.css && test -s pwa/app.js && test -s pwa/sw.js && test -s pwa/icon.svg
