@@ -10,7 +10,6 @@ struct LetterPracticeView: View {
     @State private var showSaved = false
     @State private var selectedWord: String?
     @State private var guideStep = 0
-    @State private var animateGuide = false
     private let synthesizer = AVSpeechSynthesizer()
 
     private var guideInstructions: [String] {
@@ -36,25 +35,19 @@ struct LetterPracticeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Wskazówka pisania", systemImage: "hand.draw")
                         .font(.headline)
-                    HStack(spacing: 8) {
-                        ForEach(0..<guideInstructions.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == guideStep ? Color.orange : Color.indigo.opacity(0.18))
-                                .frame(width: 28, height: 28)
-                                .overlay(Text("\(index + 1)").font(.caption.bold())
-                                    .foregroundStyle(index == guideStep ? .white : .indigo))
+                    TimelineView(.periodic(from: .now, by: 1.6)) { context in
+                        let activeStep = Int(context.date.timeIntervalSinceReferenceDate / 1.6) % guideInstructions.count
+                        HStack(spacing: 8) {
+                            ForEach(0..<guideInstructions.count, id: \\.self) { index in
+                                Circle()
+                                    .fill(index == activeStep ? Color.orange : Color.indigo.opacity(0.18))
+                                    .frame(width: 28, height: 28)
+                                    .overlay(Text("\\(index + 1)").font(.caption.bold())
+                                        .foregroundStyle(index == activeStep ? .white : .indigo))
+                            }
+                            Text(guideInstructions[activeStep])
+                                .font(.subheadline)
                         }
-                        Text(guideInstructions[guideStep])
-                            .font(.subheadline)
-                            .animation(.easeInOut, value: guideStep)
-                    }
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
-                            animateGuide = true
-                        }
-                    }
-                    .onChange(of: animateGuide) { _ in
-                        guideStep = (guideStep + 1) % guideInstructions.count
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
