@@ -1,0 +1,17 @@
+name: Kontrola budowania iOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wersja Xcode
+        run: xcodebuild -version
+      - name: Budowanie aplikacji dla symulatora
+        run: xcodebuild -project Literkowo.xcodeproj -scheme Literkowo -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
