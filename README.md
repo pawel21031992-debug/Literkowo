@@ -7,11 +7,17 @@ Natywna aplikacja edukacyjna na iPhone'a i iPada, napisana w Swift i SwiftUI.
 - Osobny ekran ćwiczenia każdej litery.
 - Rysowanie palcem po ekranie.
 - Indywidualne, tekstowe wskazówki kolejności kreślenia dla wszystkich 32 liter.
-- Wstępna kontrola, czy ślad ma wystarczającą liczbę punktów i długość.
+- Wzorce wektorowe dla 32 wielkich liter polskiego alfabetu, z podziałem na osobne ruchy.
+- Porównywanie śladu z wzorcem przez równomierne próbkowanie punktów i pomiar odległości.
+- Kontrola liczby, kolejności i kierunku ruchów oraz punktów rozpoczęcia i zakończenia.
+- Informacja zwrotna po ćwiczeniu; ocena odbywa się lokalnie na urządzeniu.
 - Wzór litery widoczny pod rysunkiem.
 - Odczytywanie liter przez polski syntezator mowy iOS.
 - Lokalny zapis postępów na urządzeniu.
 - Działanie bez konta, reklam i połączenia z internetem.
+
+## Jak działa ocena pisania
+Wzorzec każdej litery składa się z uporządkowanych ścieżek. Każdy ruch dziecka jest normalizowany do rozmiaru pola, próbkowany w równych odstępach i porównywany z odpowiadającą mu ścieżką wzorcową. Aplikacja sprawdza liczbę ruchów, przebieg linii, kierunek oraz położenie początku i końca. Wynik jest przybliżoną oceną zgodności z uproszczonym wzorcem, a nie profesjonalnym rozpoznawaniem pisma ani diagnozą umiejętności dziecka. Wzorce i próg akceptacji wymagają dalszych testów z dziećmi i specjalistą edukacji wczesnoszkolnej.
 
 ## Uruchomienie
 1. Otwórz plik projektu Literkowo.xcodeproj w Xcode na komputerze Mac.
