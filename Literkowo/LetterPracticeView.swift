@@ -86,9 +86,19 @@ struct LetterPracticeView: View {
                                                              y: (arrowStart.y + arrowEnd.y) * size.height / 2)
                                     let angle = atan2((arrowEnd.y - arrowStart.y) * size.height,
                                                       (arrowEnd.x - arrowStart.x) * size.width)
-                                    context.draw(Text("➜").font(.system(size: 18, weight: .bold))
-                                        .foregroundColor(.orange)
-                                        .rotationEffect(.radians(Double(angle))), at: arrowPoint)
+                                    let ux = cos(angle)
+                                    let uy = sin(angle)
+                                    let px = -uy
+                                    let py = ux
+                                    let tip = CGPoint(x: arrowPoint.x + ux * 9, y: arrowPoint.y + uy * 9)
+                                    var arrowPath = Path()
+                                    arrowPath.move(to: CGPoint(x: arrowPoint.x - ux * 8, y: arrowPoint.y - uy * 8))
+                                    arrowPath.addLine(to: tip)
+                                    arrowPath.move(to: tip)
+                                    arrowPath.addLine(to: CGPoint(x: tip.x - ux * 7 + px * 5, y: tip.y - uy * 7 + py * 5))
+                                    arrowPath.move(to: tip)
+                                    arrowPath.addLine(to: CGPoint(x: tip.x - ux * 7 - px * 5, y: tip.y - uy * 7 - py * 5))
+                                    context.stroke(arrowPath, with: .color(.orange), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
                                 }
                             }
                             for points in paths + [currentPath] {
