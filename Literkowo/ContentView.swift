@@ -10,20 +10,20 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Cześć, mały odkrywco!").font(.largeTitle.bold())
-                        Text("Poznaj polskie literki i ćwicz pisanie.")
+                        Text("Poznaj polskie literki, sylaby i pierwsze wyrazy.")
                             .font(.title3).foregroundStyle(.secondary)
                     }
 
                     HStack(spacing: 12) {
                         Image(systemName: "star.fill").font(.title2).foregroundStyle(.orange)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Twoje postępy").font(.headline)
-                            Text("\(progress.completedCount) z 32 liter")
+                            Text("Twoje nagrody").font(.headline)
+                            Text("\(progress.stars) gwiazdek • \(progress.completedCount) z 32 liter")
                                 .font(.subheadline).foregroundStyle(.secondary)
                         }
                         Spacer()
                         ProgressView(value: Double(progress.completedCount), total: 32)
-                            .tint(.orange).frame(width: 92)
+                            .tint(.orange).frame(width: 88)
                     }
                     .padding()
                     .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 18))
@@ -58,7 +58,6 @@ struct ContentView: View {
                     } label: {
                         Text("Wyzeruj postępy").font(.footnote)
                     }
-                    .padding(.top, 4)
                 }
                 .padding()
             }
