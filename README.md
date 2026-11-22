@@ -6,6 +6,8 @@ Natywna aplikacja edukacyjna na iPhone'a i iPada, napisana w Swift i SwiftUI.
 - Pełny polski alfabet (32 litery).
 - Osobny ekran ćwiczenia każdej litery.
 - Rysowanie palcem po ekranie.
+- Indywidualne, tekstowe wskazówki kolejności kreślenia dla wszystkich 32 liter.
+- Wstępna kontrola, czy ślad ma wystarczającą liczbę punktów i długość.
 - Wzór litery widoczny pod rysunkiem.
 - Odczytywanie liter przez polski syntezator mowy iOS.
 - Lokalny zapis postępów na urządzeniu.
