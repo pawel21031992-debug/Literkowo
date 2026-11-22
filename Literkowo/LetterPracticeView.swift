@@ -9,24 +9,23 @@ struct LetterPracticeView: View {
     @State private var currentPath: [CGPoint] = []
     @State private var showSaved = false
     @State private var selectedWord: String?
+    @State private var drawingSize: CGSize = CGSize(width: 320, height: 290)
     private let synthesizer = AVSpeechSynthesizer()
 
-    private var traceLength: CGFloat {
-        (paths + [currentPath]).reduce(0) { total, points in
-            total + zip(points, points.dropFirst()).reduce(0) { partial, pair in
-                let dx = pair.1.x - pair.0.x
-                let dy = pair.1.y - pair.0.y
-                return partial + sqrt(dx * dx + dy * dy)
-            }
-        }
+    private var templateStrokes: [[CGPoint]] {
+        LetterTraceTemplate.strokes(for: letter.character)
     }
 
-    private var tracePointCount: Int {
-        paths.reduce(0) { $0 + $1.count } + currentPath.count
+    private var evaluation: LetterTraceEvaluation {
+        LetterTraceEvaluator.evaluate(userStrokes: paths, templateStrokes: templateStrokes, canvasSize: drawingSize)
     }
 
     private var hasUsableTrace: Bool {
-        tracePointCount >= 8 && traceLength >= 80
+        evaluation.isAccepted
+    }
+
+    private var tracePointCount: Int {
+        paths.reduce(0) { $0 + $1.count }
     }
 
     var body: some View {
@@ -65,40 +64,53 @@ struct LetterPracticeView: View {
                 .padding()
                 .background(Color.indigo.opacity(0.07), in: RoundedRectangle(cornerRadius: 18))
 
-                Text("Przesuwaj palcem po jasnym wzorze.")
+                Text("Wykonuj ruchy po jasnych liniach w kolejności oznaczonej numerami.")
                     .font(.subheadline).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24).fill(Color.white)
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(Color.indigo.opacity(0.18), style: StrokeStyle(lineWidth: 2, dash: [7, 7]))
-                    VStack {
-                        Spacer()
-                        Rectangle().fill(Color.gray.opacity(0.18)).frame(height: 1)
-                        Spacer()
-                    }
-                    Text(letter.character)
-                        .font(.system(size: 210, weight: .medium, design: .rounded))
-                        .foregroundStyle(Color.indigo.opacity(0.16))
-                        .minimumScaleFactor(0.5).lineLimit(1)
-                    Canvas { context, _ in
-                        for points in paths + [currentPath] {
-                            guard let first = points.first else { continue }
-                            var path = Path()
-                            path.move(to: first)
-                            for point in points.dropFirst() { path.addLine(to: point) }
-                            context.stroke(path, with: .color(Color.orange),
-                                           style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                GeometryReader { geometry in
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 24).fill(Color.white)
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(Color.indigo.opacity(0.18), style: StrokeStyle(lineWidth: 2, dash: [7, 7]))
+                        Canvas { context, size in
+                            for (index, stroke) in templateStrokes.enumerated() {
+                                guard let first = stroke.first else { continue }
+                                var guide = Path()
+                                guide.move(to: CGPoint(x: first.x * size.width, y: first.y * size.height))
+                                for point in stroke.dropFirst() {
+                                    guide.addLine(to: CGPoint(x: point.x * size.width, y: point.y * size.height))
+                                }
+                                context.stroke(guide, with: .color(Color.indigo.opacity(0.30)),
+                                               style: StrokeStyle(lineWidth: 11, lineCap: .round, lineJoin: .round, dash: [5, 5]))
+                                let start = CGPoint(x: first.x * size.width, y: first.y * size.height)
+                                let marker = CGRect(x: start.x - 11, y: start.y - 11, width: 22, height: 22)
+                                context.fill(Path(ellipseIn: marker), with: .color(.orange))
+                                context.draw(Text("\(index + 1)").font(.system(size: 12, weight: .bold)).foregroundColor(.white),
+                                             at: start)
+                            }
+                            for points in paths + [currentPath] {
+                                guard let first = points.first else { continue }
+                                var userPath = Path()
+                                userPath.move(to: first)
+                                for point in points.dropFirst() { userPath.addLine(to: point) }
+                                context.stroke(userPath, with: .color(Color.orange),
+                                               style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                            }
                         }
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                showSaved = false
+                                currentPath.append(value.location)
+                            }
+                            .onEnded { _ in
+                                if !currentPath.isEmpty { paths.append(currentPath) }
+                                currentPath = []
+                            })
                     }
-                    .contentShape(Rectangle())
-                    .gesture(DragGesture(minimumDistance: 0)
-                        .onChanged { currentPath.append($0.location) }
-                        .onEnded { _ in
-                            if !currentPath.isEmpty { paths.append(currentPath) }
-                            currentPath = []
-                        })
+                    .onAppear { drawingSize = geometry.size }
+                    .onChange(of: geometry.size) { newSize in drawingSize = newSize }
                 }
                 .frame(height: 290)
                 .accessibilityLabel("Pole do ćwiczenia pisania litery \(letter.character)")
@@ -128,7 +140,7 @@ struct LetterPracticeView: View {
                         Label(hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów.", systemImage: hasUsableTrace ? "checkmark.circle" : "pencil")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(hasUsableTrace ? .green : .orange)
-                        Text("Zebrano \(tracePointCount) punktów na ścieżce. To kontrola wykonania ćwiczenia, a nie automatyczna ocena poprawności kształtu litery.")
+                        Text("\(evaluation.message) Zarejestrowano \(tracePointCount) punktów. Ocena porównuje kształt, kolejność i kierunek ruchów z uproszczonym wzorem.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
