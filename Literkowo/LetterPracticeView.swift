@@ -11,8 +11,22 @@ struct LetterPracticeView: View {
     @State private var selectedWord: String?
     private let synthesizer = AVSpeechSynthesizer()
 
-    private var guideInstructions: [String] {
-        ["Zacznij na górze litery.", "Prowadź palec powoli po jasnym wzorze.", "Dokończ kształt i unieś palec."]
+    private var traceLength: CGFloat {
+        (paths + [currentPath]).reduce(0) { total, points in
+            total + zip(points, points.dropFirst()).reduce(0) { partial, pair in
+                let dx = pair.1.x - pair.0.x
+                let dy = pair.1.y - pair.0.y
+                return partial + sqrt(dx * dx + dy * dy)
+            }
+        }
+    }
+
+    private var tracePointCount: Int {
+        paths.reduce(0) { $0 + $1.count } + currentPath.count
+    }
+
+    private var hasUsableTrace: Bool {
+        tracePointCount >= 8 && traceLength >= 80
     }
 
     var body: some View {
@@ -34,18 +48,16 @@ struct LetterPracticeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Wskazówka pisania", systemImage: "hand.draw")
                         .font(.headline)
-                    TimelineView(.periodic(from: .now, by: 1.6)) { context in
-                        let activeStep = Int(context.date.timeIntervalSinceReferenceDate / 1.6) % guideInstructions.count
-                        HStack(spacing: 8) {
-                            ForEach(0..<guideInstructions.count, id: \.self) { index in
-                                Circle()
-                                    .fill(index == activeStep ? Color.orange : Color.indigo.opacity(0.18))
-                                    .frame(width: 28, height: 28)
-                                    .overlay(Text("\(index + 1)").font(.caption.bold())
-                                        .foregroundStyle(index == activeStep ? .white : .indigo))
+                    VStack(alignment: .leading, spacing: 9) {
+                        ForEach(Array(letter.writingInstructions.enumerated()), id: \.offset) { index, instruction in
+                            HStack(alignment: .top, spacing: 9) {
+                                Text("\(index + 1)")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.white)
+                                    .frame(width: 24, height: 24)
+                                    .background(Color.indigo, in: Circle())
+                                Text(instruction).font(.subheadline)
                             }
-                            Text(guideInstructions[activeStep])
-                                .font(.subheadline)
                         }
                     }
                 }
@@ -102,16 +114,31 @@ struct LetterPracticeView: View {
                     }.buttonStyle(.bordered)
 
                     Button {
+                        guard hasUsableTrace else { return }
                         progress.markCompleted(letter)
                         showSaved = true
                     } label: {
-                        Label("Zdobądź gwiazdkę", systemImage: "star.fill")
+                        Label("Zapisz ćwiczenie", systemImage: "star.fill")
                             .frame(maxWidth: .infinity)
-                    }.buttonStyle(.borderedProminent).disabled(paths.isEmpty)
+                    }.buttonStyle(.borderedProminent).disabled(!hasUsableTrace)
+                }
+
+                if !paths.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Label(hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów.", systemImage: hasUsableTrace ? "checkmark.circle" : "pencil")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(hasUsableTrace ? .green : .orange)
+                        Text("Zebrano \(tracePointCount) punktów na ścieżce. To kontrola wykonania ćwiczenia, a nie automatyczna ocena poprawności kształtu litery.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                 }
 
                 if showSaved || progress.isCompleted(letter) {
-                    Label("Brawo! Zdobywasz gwiazdkę.", systemImage: "checkmark.seal.fill")
+                    Label("Ćwiczenie zapisane. Brawo!", systemImage: "checkmark.seal.fill")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.green)
                 }
 
