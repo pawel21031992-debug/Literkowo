@@ -2,7 +2,7 @@ name: Kontrola budowania iOS
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/literkowo-pwa ]
   pull_request:
     branches: [ main ]
 
@@ -13,6 +13,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Wersja Xcode
         run: xcodebuild -version
+      - name: Sprawdź składnię JavaScript PWA
+        run: node --check pwa/app.js
+      - name: Sprawdź manifest PWA
+        run: |
+          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("pwa/manifest.webmanifest","utf8")); if(!m.name || !m.start_url || !m.display) process.exit(1); console.log("Manifest PWA OK")'
+      - name: Sprawdź kompletność plików PWA
+        run: test -s pwa/index.html && test -s pwa/styles.css && test -s pwa/app.js && test -s pwa/sw.js && test -s pwa/manifest.webmanifest && test -s pwa/icon.svg
       - name: Budowanie aplikacji dla symulatora
         run: xcodebuild -project Literkowo.xcodeproj -scheme Literkowo -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
       - name: Budowanie aplikacji dla fizycznego iPhone'a (bez podpisu)

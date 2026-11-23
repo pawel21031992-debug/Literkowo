@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f5ff"><meta name="description" content="Literkowo – nauka pisania polskich liter.">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css"><title>Literkowo</title>
+</head>
+<body>
+<header class="topbar"><div><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1></div><div class="stats"><strong id="stars">0</strong><span>gwiazdek</span><small id="progress">0 / 32 liter</small></div></header>
+<main>
+<section id="home"><div class="intro"><h2>Wybierz literę</h2><p>Ćwicz pisanie, poznawaj sylaby i słuchaj wyrazów.</p></div><div id="letterGrid" class="letter-grid"></div><button id="reset" class="text-button">Wyzeruj postępy</button></section>
+<section id="practice" hidden>
+<button id="back" class="back-button">← Wszystkie litery</button>
+<div class="letter-heading"><div><p class="eyebrow">ĆWICZYMY LITERĘ</p><h2 id="letterTitle">A a</h2></div><button id="speakLetter" class="secondary">Posłuchaj</button></div>
+<div class="guide"><h3>Jak napisać literę?</h3><ol id="guideList"></ol><p>Każdy numer oznacza jeden ruch. Zacznij przy pomarańczowym punkcie i prowadź palec zgodnie ze strzałką.</p></div>
+<div class="canvas-wrap"><canvas id="drawing" aria-label="Pole do ćwiczenia pisania litery"></canvas></div>
+<div class="actions"><button id="clear" class="secondary">Wyczyść</button><button id="save" class="primary" disabled>Zapisz ćwiczenie ★</button></div>
+<p id="feedback" class="feedback" aria-live="polite">Zacznij pisać po wzorze.</p>
+<div class="learning"><h3>Sylaby</h3><div id="syllables" class="chips"></div></div>
+<div class="learning"><h3>Wyrazy</h3><p>Dotknij wyrazu, aby go usłyszeć.</p><div id="words" class="chips"></div><label class="word-check">Znam ten wyraz <select id="selectedWord"><option value="">Wybierz wyraz…</option></select></label><button id="markWord" class="secondary mark-word" hidden>Umiem ten wyraz</button></div>
+<p id="example" class="example"></p>
+</section>
+</main>
+<footer>Postępy są zapisywane lokalnie w tej przeglądarce na tym urządzeniu.</footer>
+<script src="./app.js"></script>
+</body></html>
