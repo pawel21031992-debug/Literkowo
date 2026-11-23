@@ -6,15 +6,21 @@ function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(sta
 function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
 function speak(t){
  const synth=window.speechSynthesis;
- if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Ta przeglądarka nie obsługuje głosu. Otwórz stronę bezpośrednio w Safari.';return}
- synth.cancel();
- const u=new SpeechSynthesisUtterance(String(t));u.lang='pl-PL';u.rate=.82;u.pitch=1;
- const chooseVoice=()=>{const voices=synth.getVoices();const pl=voices.find(v=>/^pl([-_]|$)/i.test(v.lang));if(pl)u.voice=pl;};
- chooseVoice();synth.onvoiceschanged=chooseVoice;
- u.onstart=()=>{$('#feedback').textContent='Odtwarzam głos…'};
- u.onend=()=>{$('#feedback').textContent='Gotowe.'};
- u.onerror=()=>{$('#feedback').textContent='Przeglądarka zablokowała głos. Otwórz Literkowo bezpośrednio w Safari i dotknij przycisku ponownie.'};
- try{synth.speak(u);setTimeout(()=>{if(synth.paused)synth.resume();if(!synth.speaking&&!synth.pending)$('#feedback').textContent='Brak odtwarzania głosu. Otwórz stronę bezpośrednio w Safari.';},900);}catch(e){$('#feedback').textContent='Nie udało się uruchomić głosu. Spróbuj w Safari.';}
+ if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Głos nie jest dostępny w tej przeglądarce. Otwórz stronę bezpośrednio w Safari.';return}
+ try{
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(String(t));
+  u.lang='pl-PL';u.rate=.88;u.pitch=1;u.volume=1;
+  const voices=synth.getVoices();
+  const polish=voices.find(v=>/^pl([-_]|$)/i.test(v.lang));
+  if(polish)u.voice=polish;
+  u.onstart=()=>{$('#feedback').textContent='Odtwarzam: '+String(t)};
+  u.onend=()=>{$('#feedback').textContent='Odtwarzanie zakończone.'};
+  u.onerror=e=>{$('#feedback').textContent='Błąd głosu ('+(e.error||'nieznany')+'). Sprawdź głośność i otwórz stronę w Safari.'};
+  synth.speak(u);
+  if(synth.paused)synth.resume();
+  setTimeout(()=>{if(!synth.speaking&&!synth.pending)$('#feedback').textContent='Przeglądarka nie uruchomiła dźwięku. Spróbuj ponownie w Safari.'},1500);
+ }catch(e){$('#feedback').textContent='Nie udało się uruchomić głosu. Otwórz stronę w Safari.'}
 }
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
@@ -59,10 +65,12 @@ function draw(){
 }
 function point(e){const r=$('#drawing').getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 const canvas=$('#drawing');
-canvas.addEventListener('pointerdown',e=>{if(!state.letter)return;e.preventDefault();canvas.setPointerCapture(e.pointerId);state.current=[point(e)];state.saved=false;$('#save').disabled=true;draw()});
-canvas.addEventListener('pointermove',e=>{if(!state.current.length)return;e.preventDefault();state.current.push(point(e));draw()});
-function finishStroke(){if(state.current.length){state.strokes.push(state.current);state.current=[];draw();evaluate()}}
-canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',finishStroke);
+let activePointer=null;
+canvas.addEventListener('pointerdown',e=>{if(!state.letter||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();activePointer=e.pointerId;try{canvas.setPointerCapture(e.pointerId)}catch{}state.current=[point(e)];state.saved=false;$('#save').disabled=true;draw()},{passive:false});
+canvas.addEventListener('pointermove',e=>{if(activePointer!==e.pointerId||!state.current.length)return;e.preventDefault();state.current.push(point(e));draw()},{passive:false});
+function finishStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;if(state.current.length){state.strokes.push(state.current);state.current=[];draw();evaluate()}}
+function cancelStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;state.current=[];draw();$('#feedback').textContent='Ruch przerwany. Spróbuj ponownie.'}
+canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',cancelStroke);
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function resample(points,count=32){if(points.length<2)return points;const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+dist(points[i-1],points[i]));const total=lengths.at(-1);if(!total)return Array(count).fill(points[0]);const out=[];let seg=1;for(let i=0;i<count;i++){const target=total*i/(count-1);while(seg<lengths.length-1&&lengths[seg]<target)seg++;const span=Math.max(lengths[seg]-lengths[seg-1],.000001),t=Math.min(1,Math.max(0,(target-lengths[seg-1])/span));out.push({x:points[seg-1].x+(points[seg].x-points[seg-1].x)*t,y:points[seg-1].y+(points[seg].y-points[seg-1].y)*t})}return out}
 function strokeScore(user,expected){
