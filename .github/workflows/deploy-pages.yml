@@ -30,6 +30,23 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Set up Python for Polish speech generation
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audio generation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          python -m pip install --upgrade pip
+          python -m pip install piper-tts
+      - name: Download Polish neural voice
+        run: python -m piper.download_voices pl_PL-gosia-medium --data-dir ./.voice
+      - name: Generate offline Polish audio clips
+        run: |
+          python scripts/generate_literkowo_audio.py \\
+            --model ./.voice/pl_PL-gosia-medium.onnx \\
+            --output ./pwa/audio
       # Unique per attempt: prevents duplicate Pages artifacts on workflow retries.
       - name: Upload PWA
         uses: actions/upload-pages-artifact@v3
