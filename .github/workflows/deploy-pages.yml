@@ -44,8 +44,8 @@ jobs:
         run: python -m piper.download_voices pl_PL-gosia-medium --data-dir ./.voice
       - name: Generate offline Polish audio clips
         run: |
-          python scripts/generate_literkowo_audio.py \\
-            --model ./.voice/pl_PL-gosia-medium.onnx \\
+          python scripts/generate_literkowo_audio.py \
+            --model ./.voice/pl_PL-gosia-medium.onnx \
             --output ./pwa/audio
       # Unique per attempt: prevents duplicate Pages artifacts on workflow retries.
       - name: Upload PWA
