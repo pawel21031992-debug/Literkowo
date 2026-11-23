@@ -30,7 +30,7 @@ function openLetter(ch){
  const template=DATA.templates[ch]||[];
  const detailed=DATA.guides[ch]||[];
  const steps=detailed.length===template.length?detailed:template.map((_,i)=>'Ruch '+(i+1)+': zacznij przy pomarańczowym punkcie i prowadź palec po jasnej linii aż do jej końca.');
- steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\\s*\\d+[.)]\\s*/, '');$('#guideList').append(li)});
+ steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
@@ -53,7 +53,7 @@ function draw(){
    for(let j=1;j<points.length;j++){const a=points[j-1],b=points[j],segment=dist(a,b);if(walked+segment>=target){const t=(target-walked)/Math.max(segment,.001),x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,angle=Math.atan2(b.y-a.y,b.x-a.x),size=10;
     ctx.beginPath();ctx.moveTo(x+Math.cos(angle)*size,y+Math.sin(angle)*size);ctx.lineTo(x-Math.cos(angle)*size*.8+Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8-Math.cos(angle)*size*.65);ctx.lineTo(x-Math.cos(angle)*size*.8-Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8+Math.cos(angle)*size*.65);ctx.closePath();ctx.fillStyle='#5954a6';ctx.fill();break;}walked+=segment;}
   }
-  const p=points[0];let markerX=p.x,markerY=p.y;const priorStarts=(DATA.templates[state.letter]||[]).slice(0,i).filter(s=>{const q=s[0];return q&&dist({x:q[0]*rect.width,y:q[1]*rect.height},p)<24}).length;if(priorStarts>0){markerX+=i%2===0?-18:18;markerY-=2;}ctx.beginPath();ctx.arc(markerX,markerY,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),markerX,markerY);
+  const p=points[0];let markerX=p.x,markerY=p.y;const priorStarts=(DATA.templates[state.letter]||[]).slice(0,i).filter(s=>{const q=s[0];return q&&dist({x:q[0]*rect.width,y:q[1]*rect.height},p)<24}).length;if(priorStarts>0){markerX+=i%2===0?-18:18;markerY-=2;}ctx.beginPath();ctx.arc(markerX,markerY,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),markerX,markerY);if(i===0){ctx.font='800 10px system-ui';ctx.textAlign='left';ctx.fillStyle='#b85b16';ctx.fillText('START',markerX+15,markerY+3);}
  });
  [...state.strokes,state.current].forEach(points=>{if(!points.length)return;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#e87524';ctx.lineWidth=7;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke()});
 }
@@ -93,5 +93,5 @@ $('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować ws
 $('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
 $('#markWord').addEventListener('click',()=>{const w=$('#selectedWord').value;if(w&&!state.words.includes(w)){state.words.push(w);state.stars++;persist()}$('#markWord').hidden=true;$('#feedback').textContent='Brawo! Wyraz zapisany.'});
 window.addEventListener('resize',()=>{if(state.letter)draw()});
-if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();}catch(e){console.warn('PWA update unavailable',e)}});
 renderHome();
