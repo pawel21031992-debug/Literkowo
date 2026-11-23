@@ -28,7 +28,7 @@ def audio_key(text: str) -> str:
 
 def load_data(app_js: Path):
     source = app_js.read_text(encoding="utf-8")
-    match = re.search(r"const DATA = (\\{.*?\\});\\s*\\nconst \\$", source, re.S)
+    match = re.search(r"const DATA = (\{.*?\});\s*\nconst \$", source, re.S)
     if not match:
         raise RuntimeError("Could not extract DATA from pwa/app.js")
     return json.loads(match.group(1))
@@ -111,11 +111,11 @@ def main():
                 print(f"Generated {index}/{len(phrases)} Polish clips", flush=True)
 
     (args.output / "VOICE.txt").write_text(
-        "Polish speech audio generated for Literkowo with Piper TTS.\\n"
-        "Voice: pl_PL-gosia-medium (rhasspy/piper-voices).\\n"
+        "Polish speech audio generated for Literkowo with Piper TTS.\n"
+        "Voice: pl_PL-gosia-medium (rhasspy/piper-voices).\n"
         "Voice model card and dataset information: "
-        "https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL/gosia/medium\\n"
-        "Piper TTS: https://github.com/OHF-Voice/piper1-gpl\\n",
+        "https://huggingface.co/rhasspy/piper-voices/tree/main/pl/pl_PL/gosia/medium\n"
+        "Piper TTS: https://github.com/OHF-Voice/piper1-gpl\n",
         encoding="utf-8",
     )
     print(f"Done: {len(phrases)} phrases prepared in {args.output}", flush=True)
