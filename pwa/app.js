@@ -6,21 +6,20 @@ function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(sta
 function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
 function speak(t){
  const synth=window.speechSynthesis;
- if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Głos nie jest dostępny w tej przeglądarce. Otwórz stronę bezpośrednio w Safari.';return}
+ if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Ta przeglądarka nie udostępnia syntezy mowy. Otwórz Literkowo w Safari.';return}
+ const text=String(t||'').trim();if(!text)return;
  try{
-  synth.cancel();
-  const u=new SpeechSynthesisUtterance(String(t));
-  u.lang='pl-PL';u.rate=.88;u.pitch=1;u.volume=1;
-  const voices=synth.getVoices();
-  const polish=voices.find(v=>/^pl([-_]|$)/i.test(v.lang));
+  if(synth.speaking||synth.pending)synth.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='pl-PL';u.rate=.86;u.pitch=1;u.volume=1;
+  const polish=synth.getVoices().find(v=>/^pl([-_]|$)/i.test(v.lang));
   if(polish)u.voice=polish;
-  u.onstart=()=>{$('#feedback').textContent='Odtwarzam: '+String(t)};
+  u.onstart=()=>{$('#feedback').textContent='Odtwarzam głos: '+text};
   u.onend=()=>{$('#feedback').textContent='Odtwarzanie zakończone.'};
-  u.onerror=e=>{$('#feedback').textContent='Błąd głosu ('+(e.error||'nieznany')+'). Sprawdź głośność i otwórz stronę w Safari.'};
+  u.onerror=e=>{$('#feedback').textContent='Nie udało się odtworzyć głosu ('+(e.error||'błąd')+'). Sprawdź tryb cichy, głośność i głos języka polskiego w ustawieniach urządzenia.'};
+  synth.resume();
   synth.speak(u);
-  if(synth.paused)synth.resume();
-  setTimeout(()=>{if(!synth.speaking&&!synth.pending)$('#feedback').textContent='Przeglądarka nie uruchomiła dźwięku. Spróbuj ponownie w Safari.'},1500);
- }catch(e){$('#feedback').textContent='Nie udało się uruchomić głosu. Otwórz stronę w Safari.'}
+ }catch(e){$('#feedback').textContent='Nie udało się uruchomić głosu. Otwórz stronę bezpośrednio w Safari.'}
 }
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
@@ -35,7 +34,9 @@ function openLetter(ch){
  $('#guideList').innerHTML='';
  const template=DATA.templates[ch]||[];
  const detailed=DATA.guides[ch]||[];
- const steps=detailed.length===template.length?detailed:template.map((_,i)=>'Ruch '+(i+1)+': zacznij przy pomarańczowym punkcie i prowadź palec po jasnej linii aż do jej końca.');
+ const position=(p)=>((p[1]<.34?'u góry':p[1]>.66?'na dole':'na środku')+' '+(p[0]<.34?'po lewej':p[0]>.66?'po prawej':''));
+ const direction=(stroke)=>{const a=stroke[0],b=stroke[stroke.length-1],dx=b[0]-a[0],dy=b[1]-a[1];if(Math.abs(dx)>Math.abs(dy)*1.25)return dx>0?'w prawo':'w lewo';if(Math.abs(dy)>Math.abs(dx)*1.25)return dy>0?'w dół':'w górę';return dx>=0?(dy>=0?'ukośnie w dół i w prawo':'ukośnie w górę i w prawo'):(dy>=0?'ukośnie w dół i w lewo':'ukośnie w górę i w lewo')};
+ const steps=detailed.length===template.length?detailed:template.map((stroke,i)=>'Ruch '+(i+1)+': zacznij '+position(stroke[0])+' i prowadź palec '+(stroke.length>4?'płynnym łukiem ':'')+direction(stroke)+' do końca przerywanej linii.');
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
@@ -43,6 +44,7 @@ function openLetter(ch){
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
  $('#feedback').textContent='Zacznij od pomarańczowego punktu i prowadź palec zgodnie ze strzałką.';
  $('#save').disabled=true;draw();
+ speak('Litera '+ch+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. '));
 }
 function fillChips(selector,items,isWord=false){const el=$(selector);el.innerHTML='';if(isWord){const select=$('#selectedWord');select.innerHTML='<option value="">Wybierz wyraz…</option>';items.forEach(item=>{const option=document.createElement('option');option.value=item;option.textContent=item;select.append(option)})}items.forEach(item=>{const b=document.createElement('button');b.className='chip';b.textContent=item;b.addEventListener('click',()=>{speak(item);if(isWord){$('#selectedWord').value=item;$('#markWord').hidden=false}});el.append(b)})}
 function draw(){
@@ -92,10 +94,10 @@ function strokeScore(user,expected){
  const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h})),48);
  const b=resample(expected.map(p=>({x:p[0],y:p[1]})),48);
  if(a.length<4||b.length<2)return Infinity;
- // Porównujemy przebieg obu linii, a nie punkt po punkcie. Dzięki temu naturalne,
- // zaokrąglone łuki i różne tempo rysowania nie powodują fałszywego odrzucenia.
- const forward=pathDistance(a,b),reverse=pathDistance(b,a);
- return (forward+reverse)/2;
+ // Zachowujemy kolejność i kierunek ruchu, tolerując drobne odchylenia od wzoru.
+ let total=0;
+ for(let i=0;i<Math.min(a.length,b.length);i++)total+=dist(a[i],b[i]);
+ return total/Math.min(a.length,b.length);
 }
 function evaluate(){
  const t=DATA.templates[state.letter]||[];
@@ -104,7 +106,7 @@ function evaluate(){
  const index=count-1;
  if(index<0)return;
  const score=strokeScore(state.strokes[index],t[index]);
- if(!Number.isFinite(score)||score>.115){rejectStroke('Kształt tego ruchu wyraźnie odbiega od wzoru. Spróbuj jeszcze raz, prowadząc linię po właściwym kształcie.');return}
+ if(!Number.isFinite(score)||score>.145){rejectStroke('Kształt tego ruchu wyraźnie odbiega od wzoru. Spróbuj jeszcze raz, prowadząc linię po właściwym kształcie.');return}
  if(count<t.length){$('#feedback').textContent='Dobrze! Wykonano '+count+' z '+t.length+' ruchów. Teraz kolejny ruch.';return}
  $('#feedback').textContent='Świetnie! Wszystkie ruchy pasują do wzoru.';$('#save').disabled=false;
 }
@@ -112,7 +114,7 @@ function rejectStroke(message){state.strokes=[];state.current=[];state.saved=fal
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 $('#save').addEventListener('click',()=>{if($('#save').disabled)return;if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true});
 $('#speakLetter').addEventListener('click',()=>speak(state.letter||''));
-$('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+(DATA.guides[state.letter]||[]).join('. ')));
+$('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
 $('#back').addEventListener('click',renderHome);
 $('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
 $('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
