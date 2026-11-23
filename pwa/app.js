@@ -33,10 +33,11 @@ function openLetter(ch){
  $('#example').textContent='Przykładowe słowo: '+(DATA.examples[ch]||ch.toLowerCase());
  $('#guideList').innerHTML='';
  const template=DATA.templates[ch]||[];
- const detailed=DATA.guides[ch]||[];
- const position=(p)=>((p[1]<.34?'u góry':p[1]>.66?'na dole':'na środku')+' '+(p[0]<.34?'po lewej':p[0]>.66?'po prawej':''));
+ const position=(p)=>((p[1]<.34?'u góry':p[1]>.66?'na dole':'na środku')+' '+(p[0]<.34?'po lewej':p[0]>.66?'po prawej':'')).trim();
  const direction=(stroke)=>{const a=stroke[0],b=stroke[stroke.length-1],dx=b[0]-a[0],dy=b[1]-a[1];if(Math.abs(dx)>Math.abs(dy)*1.25)return dx>0?'w prawo':'w lewo';if(Math.abs(dy)>Math.abs(dx)*1.25)return dy>0?'w dół':'w górę';return dx>=0?(dy>=0?'ukośnie w dół i w prawo':'ukośnie w górę i w prawo'):(dy>=0?'ukośnie w dół i w lewo':'ukośnie w górę i w lewo')};
- const steps=detailed.length===template.length?detailed:template.map((stroke,i)=>'Ruch '+(i+1)+': zacznij '+position(stroke[0])+' i prowadź palec '+(stroke.length>4?'płynnym łukiem ':'')+direction(stroke)+' do końca przerywanej linii.');
+ // Instrukcja jest tworzona z rzeczywistej liczby i geometrii ruchów wzoru.
+ // Nie używamy ręcznych opisów, które w starszych danych miały inną liczbę kroków.
+ const steps=template.map((stroke,i)=>{const curved=stroke.length>4;const closed=dist({x:stroke[0][0],y:stroke[0][1]},{x:stroke.at(-1)[0],y:stroke.at(-1)[1]})<.12;return 'Ruch '+(i+1)+': zacznij '+position(stroke[0])+', prowadź palec '+(curved?'płynnym łukiem ':closed?'po obwodzie ':'')+direction(stroke)+' i zakończ w oznaczonym miejscu.'});
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
