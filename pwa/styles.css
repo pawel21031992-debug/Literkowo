@@ -7,3 +7,6 @@
 
 /* Clear mobile header and author credit */
 .topbar{gap:10px;align-items:flex-start}.brand{min-width:0}.author-signature{display:inline-block;margin:5px 0 0;padding:4px 8px;border-radius:8px;background:#f1f0ff;color:#5954a6;font-size:12px;font-weight:800}.stats{padding-top:5px}
+
+/* Keep touch gestures inside the writing surface */
+.canvas-wrap,canvas#drawing{touch-action:none!important;overscroll-behavior:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
