@@ -3,7 +3,7 @@ const $ = (s) => document.querySelector(s);
 const state = { letter: null, strokes: [], current: [], size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
-function renderStats(){ $('#stars').textContent=state.stars; $('#progress').textContent=state.completed.length+' / 32 liter';}
+function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
 function speak(t){
  const synth=window.speechSynthesis;
  if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Ta przeglądarka nie obsługuje głosu. Otwórz stronę bezpośrednio w Safari.';return}
