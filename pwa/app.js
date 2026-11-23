@@ -4,23 +4,30 @@ const state = { letter: null, strokes: [], current: [], size: {w:1,h:1}, complet
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
-function speak(t){
- const synth=window.speechSynthesis;
- if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Ta przeglądarka nie udostępnia syntezy mowy. Otwórz Literkowo w Safari.';return}
- const text=String(t||'').trim();if(!text)return;
- try{
-  if(synth.speaking||synth.pending)synth.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang='pl-PL';u.rate=.86;u.pitch=1;u.volume=1;
-  const polish=synth.getVoices().find(v=>/^pl([-_]|$)/i.test(v.lang));
-  if(polish)u.voice=polish;
-  u.onstart=()=>{$('#feedback').textContent='Odtwarzam głos: '+text};
-  u.onend=()=>{$('#feedback').textContent='Odtwarzanie zakończone.'};
-  u.onerror=e=>{$('#feedback').textContent='Nie udało się odtworzyć głosu ('+(e.error||'błąd')+'). Sprawdź tryb cichy, głośność i głos języka polskiego w ustawieniach urządzenia.'};
-  synth.resume();
-  synth.speak(u);
- }catch(e){$('#feedback').textContent='Nie udało się uruchomić głosu. Otwórz stronę bezpośrednio w Safari.'}
+const voiceAudio=new Audio();
+voiceAudio.preload='auto';
+voiceAudio.setAttribute('playsinline','');
+function audioKey(value){
+ const text=String(value||'').normalize('NFC').trim().replace(/\s+/g,' ');
+ let hash=0xcbf29ce484222325n;
+ for(const byte of new TextEncoder().encode(text)){hash^=BigInt(byte);hash=BigInt.asUintN(64,hash*0x100000001b3n)}
+ return hash.toString(16).padStart(16,'0');
 }
+function speak(t){
+ const text=String(t||'').normalize('NFC').trim().replace(/\s+/g,' ');
+ if(!text)return;
+ const url='./audio/'+audioKey(text)+'.mp3';
+ try{
+  voiceAudio.pause();
+  voiceAudio.currentTime=0;
+  voiceAudio.src=url;
+  $('#feedback').textContent='Odtwarzam polskie nagranie…';
+  const playback=voiceAudio.play();
+  if(playback&&typeof playback.catch==='function')playback.catch(()=>{$('#feedback').textContent='Nie udało się odtworzyć nagrania. Sprawdź połączenie z internetem i głośność telefonu.'});
+ }catch(e){$('#feedback').textContent='Nie udało się uruchomić nagrania audio.'}
+}
+voiceAudio.addEventListener('ended',()=>{$('#feedback').textContent='Odtwarzanie zakończone.'});
+voiceAudio.addEventListener('error',()=>{$('#feedback').textContent='Brak pliku dźwiękowego dla tego tekstu. Odśwież aplikację i spróbuj ponownie.'});
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
  DATA.alphabet.forEach(ch=>{const b=document.createElement('button');b.className='letter-tile'+(state.completed.includes(ch)?' done':'');b.innerHTML='<span>'+ch+'</span><small>'+(state.completed.includes(ch)?'Ukończona':'Ćwicz')+'</small>';b.addEventListener('click',()=>openLetter(ch));$('#letterGrid').append(b)});
@@ -45,7 +52,7 @@ function openLetter(ch){
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
  $('#feedback').textContent='Zacznij od pomarańczowego punktu i prowadź palec zgodnie ze strzałką.';
  $('#save').disabled=true;draw();
- speak('Litera '+ch+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. '));
+ speak('Litera '+ch);
 }
 function fillChips(selector,items,isWord=false){const el=$(selector);el.innerHTML='';if(isWord){const select=$('#selectedWord');select.innerHTML='<option value="">Wybierz wyraz…</option>';items.forEach(item=>{const option=document.createElement('option');option.value=item;option.textContent=item;select.append(option)})}items.forEach(item=>{const b=document.createElement('button');b.className='chip';b.textContent=item;b.addEventListener('click',()=>{speak(item);if(isWord){$('#selectedWord').value=item;$('#markWord').hidden=false}});el.append(b)})}
 function draw(){
@@ -114,7 +121,7 @@ function evaluate(){
 function rejectStroke(message){state.strokes=[];state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message;draw();}
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 $('#save').addEventListener('click',()=>{if($('#save').disabled)return;if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true});
-$('#speakLetter').addEventListener('click',()=>speak(state.letter||''));
+$('#speakLetter').addEventListener('click',()=>speak('Litera '+(state.letter||'')));
 $('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
 $('#back').addEventListener('click',renderHome);
 $('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
