@@ -30,6 +30,7 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      # Unique per attempt: prevents duplicate Pages artifacts on workflow retries.
       - name: Upload PWA
         uses: actions/upload-pages-artifact@v3
         with:
