@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 import unicodedata
+import wave
 from pathlib import Path
 
 from piper import PiperVoice
@@ -99,7 +100,7 @@ def main():
             mp3_path = args.output / f"{key}.mp3"
             if mp3_path.exists() and mp3_path.stat().st_size > 500:
                 continue
-            with wav_path.open("wb") as wav_file:
+            with wave.open(str(wav_path), "wb") as wav_file:
                 voice.synthesize_wav(phrase, wav_file)
             subprocess.run(
                 ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
