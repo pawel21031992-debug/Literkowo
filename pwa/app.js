@@ -42,7 +42,7 @@ function draw(){
    for(let j=1;j<points.length;j++){const a=points[j-1],b=points[j],segment=dist(a,b);if(walked+segment>=target){const t=(target-walked)/Math.max(segment,.001),x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,angle=Math.atan2(b.y-a.y,b.x-a.x),size=10;
     ctx.beginPath();ctx.moveTo(x+Math.cos(angle)*size,y+Math.sin(angle)*size);ctx.lineTo(x-Math.cos(angle)*size*.8+Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8-Math.cos(angle)*size*.65);ctx.lineTo(x-Math.cos(angle)*size*.8-Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8+Math.cos(angle)*size*.65);ctx.closePath();ctx.fillStyle='#5954a6';ctx.fill();break;}walked+=segment;}
   }
-  const p=points[0];let markerX=p.x,markerY=p.y;for(let k=0;k<i;k++){const prev=(DATA.templates[state.letter]||[])[k]?.[0];if(prev&&dist({x:prev[0]*rect.width,y:prev[1]*rect.height},p)<18){markerX+=i%2===0?-17:17;markerY+=i%2===0?2:-2;}}ctx.beginPath();ctx.arc(markerX,markerY,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),markerX,markerY);
+  const p=points[0];let markerX=p.x,markerY=p.y;const priorStarts=(DATA.templates[state.letter]||[]).slice(0,i).filter(s=>{const q=s[0];return q&&dist({x:q[0]*rect.width,y:q[1]*rect.height},p)<24}).length;if(priorStarts>0){markerX+=i%2===0?-18:18;markerY-=2;}ctx.beginPath();ctx.arc(markerX,markerY,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),markerX,markerY);
  });
  [...state.strokes,state.current].forEach(points=>{if(!points.length)return;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#e87524';ctx.lineWidth=7;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke()});
 }
@@ -54,19 +54,25 @@ function finishStroke(){if(state.current.length){state.strokes.push(state.curren
 canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',finishStroke);
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function resample(points,count=32){if(points.length<2)return points;const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+dist(points[i-1],points[i]));const total=lengths.at(-1);if(!total)return Array(count).fill(points[0]);const out=[];let seg=1;for(let i=0;i<count;i++){const target=total*i/(count-1);while(seg<lengths.length-1&&lengths[seg]<target)seg++;const span=Math.max(lengths[seg]-lengths[seg-1],.000001),t=Math.min(1,Math.max(0,(target-lengths[seg-1])/span));out.push({x:points[seg-1].x+(points[seg].x-points[seg-1].x)*t,y:points[seg-1].y+(points[seg].y-points[seg-1].y)*t})}return out}
+function strokeScore(user,expected){
+ const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h})));
+ const b=resample(expected.map(p=>({x:p[0],y:p[1]})));
+ if(a.length<4)return Infinity;
+ const mean=a.reduce((sum,p,j)=>sum+dist(p,b[j]),0)/a.length;
+ return mean*.7+(dist(a[0],b[0])+dist(a.at(-1),b.at(-1)))*.15;
+}
 function evaluate(){
  const t=DATA.templates[state.letter]||[];
- if(state.strokes.length!==t.length){$('#feedback').textContent='Wykonano '+state.strokes.length+' z '+t.length+' ruchów. Wykonuj je po kolei.';return}
- let total=0;
- for(let i=0;i<t.length;i++){const user=state.strokes[i];if(user.length<4){$('#feedback').textContent='Wykonaj każdy ruch jednym płynnym pociągnięciem.';return}
- const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h}))),b=resample(t[i].map(p=>({x:p[0],y:p[1]})));
- const mean=a.reduce((s,p,j)=>s+dist(p,b[j]),0)/a.length;
- total+=mean*.7+(dist(a[0],b[0])+dist(a.at(-1),b.at(-1)))*.15;
- }
- const score=total/t.length,ok=score<=.24;
- if(ok){$('#feedback').textContent='Świetnie! Kształt, kolejność i kierunek ruchów pasują do wzoru.';$('#save').disabled=false;}
- else{$('#feedback').textContent='Ten zapis odbiega od wzoru. Spróbuj ponownie — poprzednia próba została wyczyszczona.';state.strokes=[];state.current=[];$('#save').disabled=true;draw();}
+ const count=state.strokes.length;
+ if(count>t.length){rejectStroke('Za dużo ruchów. Zacznij jeszcze raz i wykonuj każdy ruch osobno.');return}
+ const index=count-1;
+ if(index<0)return;
+ const score=strokeScore(state.strokes[index],t[index]);
+ if(!Number.isFinite(score)||score>.29){rejectStroke('Ten ruch nie pasuje do wzoru albo został wykonany w złej kolejności. Pole wyczyszczono — spróbuj ponownie.');return}
+ if(count<t.length){$('#feedback').textContent='Dobrze! Wykonano '+count+' z '+t.length+' ruchów. Teraz kolejny ruch.';return}
+ $('#feedback').textContent='Świetnie! Wszystkie ruchy pasują do wzoru.';$('#save').disabled=false;
 }
+function rejectStroke(message){state.strokes=[];state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message;draw();}
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 $('#save').addEventListener('click',()=>{if($('#save').disabled)return;if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true});
 $('#speakLetter').addEventListener('click',()=>speak(state.letter||''));
