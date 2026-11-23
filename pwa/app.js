@@ -4,7 +4,7 @@ const state = { letter: null, strokes: [], current: [], size: {w:1,h:1}, complet
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){ $('#stars').textContent=state.stars; $('#progress').textContent=state.completed.length+' / 32 liter';}
-function speak(t){if(!('speechSynthesis' in window)){alert('Odczytywanie głosowe nie jest dostępne w tej przeglądarce.');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='pl-PL';u.rate=.78;const voices=speechSynthesis.getVoices();u.voice=voices.find(v=>v.lang.toLowerCase().startsWith('pl'))||null;speechSynthesis.speak(u)}
+function speak(t){const synth=window.speechSynthesis;if(!synth||!window.SpeechSynthesisUtterance){$('#feedback').textContent='Ta przeglądarka nie udostępnia syntezy mowy. Otwórz Literkowo w Safari.';return}synth.cancel();const u=new SpeechSynthesisUtterance(String(t));u.lang='pl-PL';u.rate=.82;u.pitch=1;const chooseVoice=()=>{const voices=synth.getVoices();u.voice=voices.find(v=>/^pl([-_]|$)/i.test(v.lang))||null};chooseVoice();u.onerror=()=>{$('#feedback').textContent='Nie udało się odtworzyć głosu. Sprawdź tryb cichy i ustawienia dźwięku przeglądarki.'};synth.speak(u);setTimeout(()=>{if(synth.pending) synth.resume()},250)}
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
  DATA.alphabet.forEach(ch=>{const b=document.createElement('button');b.className='letter-tile'+(state.completed.includes(ch)?' done':'');b.innerHTML='<span>'+ch+'</span><small>'+(state.completed.includes(ch)?'Ukończona':'Ćwicz')+'</small>';b.addEventListener('click',()=>openLetter(ch));$('#letterGrid').append(b)});
@@ -19,7 +19,7 @@ function openLetter(ch){
  const template=DATA.templates[ch]||[];
  const detailed=DATA.guides[ch]||[];
  const steps=detailed.length===template.length?detailed:template.map((_,i)=>'Ruch '+(i+1)+': zacznij przy pomarańczowym punkcie i prowadź palec po jasnej linii aż do jej końca.');
- steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=(i+1)+'. '+g;$('#guideList').append(li)});
+ steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=g;$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
@@ -42,7 +42,7 @@ function draw(){
    for(let j=1;j<points.length;j++){const a=points[j-1],b=points[j],segment=dist(a,b);if(walked+segment>=target){const t=(target-walked)/Math.max(segment,.001),x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t,angle=Math.atan2(b.y-a.y,b.x-a.x),size=10;
     ctx.beginPath();ctx.moveTo(x+Math.cos(angle)*size,y+Math.sin(angle)*size);ctx.lineTo(x-Math.cos(angle)*size*.8+Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8-Math.cos(angle)*size*.65);ctx.lineTo(x-Math.cos(angle)*size*.8-Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8+Math.cos(angle)*size*.65);ctx.closePath();ctx.fillStyle='#5954a6';ctx.fill();break;}walked+=segment;}
   }
-  const p=points[0];ctx.beginPath();ctx.arc(p.x,p.y,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),p.x,p.y);
+  const p=points[0];let markerX=p.x,markerY=p.y;for(let k=0;k<i;k++){const prev=(DATA.templates[state.letter]||[])[k]?.[0];if(prev&&dist({x:prev[0]*rect.width,y:prev[1]*rect.height},p)<18){markerX+=i%2===0?-17:17;markerY+=i%2===0?2:-2;}}ctx.beginPath();ctx.arc(markerX,markerY,11,0,Math.PI*2);ctx.fillStyle='#f28a35';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),markerX,markerY);
  });
  [...state.strokes,state.current].forEach(points=>{if(!points.length)return;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#e87524';ctx.lineWidth=7;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke()});
 }
@@ -63,13 +63,14 @@ function evaluate(){
  const mean=a.reduce((s,p,j)=>s+dist(p,b[j]),0)/a.length;
  total+=mean*.7+(dist(a[0],b[0])+dist(a.at(-1),b.at(-1)))*.15;
  }
- const score=total/t.length,ok=score<=.19;
- $('#feedback').textContent=ok?'Świetnie! Kształt, kolejność i kierunek ruchów pasują do wzoru.':'Spróbuj jeszcze raz, bliżej jasnej linii. Zwróć uwagę na punkt startu i kierunek strzałki.';
- $('#save').disabled=!ok;
+ const score=total/t.length,ok=score<=.24;
+ if(ok){$('#feedback').textContent='Świetnie! Kształt, kolejność i kierunek ruchów pasują do wzoru.';$('#save').disabled=false;}
+ else{$('#feedback').textContent='Ten zapis odbiega od wzoru. Spróbuj ponownie — poprzednia próba została wyczyszczona.';state.strokes=[];state.current=[];$('#save').disabled=true;draw();}
 }
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 $('#save').addEventListener('click',()=>{if($('#save').disabled)return;if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true});
 $('#speakLetter').addEventListener('click',()=>speak(state.letter||''));
+$('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+(DATA.guides[state.letter]||[]).join('. ')));
 $('#back').addEventListener('click',renderHome);
 $('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
 $('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
