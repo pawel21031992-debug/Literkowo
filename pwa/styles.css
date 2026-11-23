@@ -2,3 +2,5 @@
 .mark-word{margin-top:12px;width:100%}.mark-word[hidden]{display:none}
 
 .voice-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.voice-actions .secondary{font-size:12px;padding:10px 12px}@media(max-width:420px){.voice-actions{flex-direction:column}.voice-actions .secondary{min-height:40px}}
+
+.topbar{position:relative}.top-signature{font-size:11px;font-weight:800;color:#5954a6;background:#f1f0ff;border:1px solid #dedcf0;border-radius:999px;padding:8px 10px;white-space:nowrap;margin-left:auto;margin-right:12px}.stats{min-width:max-content}.canvas-wrap{position:relative}
