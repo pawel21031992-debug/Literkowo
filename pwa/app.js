@@ -73,12 +73,29 @@ function cancelStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=
 canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',cancelStroke);
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function resample(points,count=32){if(points.length<2)return points;const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+dist(points[i-1],points[i]));const total=lengths.at(-1);if(!total)return Array(count).fill(points[0]);const out=[];let seg=1;for(let i=0;i<count;i++){const target=total*i/(count-1);while(seg<lengths.length-1&&lengths[seg]<target)seg++;const span=Math.max(lengths[seg]-lengths[seg-1],.000001),t=Math.min(1,Math.max(0,(target-lengths[seg-1])/span));out.push({x:points[seg-1].x+(points[seg].x-points[seg-1].x)*t,y:points[seg-1].y+(points[seg].y-points[seg-1].y)*t})}return out}
+function pointToSegmentDistance(p,a,b){
+ const dx=b.x-a.x,dy=b.y-a.y,len=dx*dx+dy*dy;
+ if(!len)return dist(p,a);
+ const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.y-a.y)*dy)/len));
+ return dist(p,{x:a.x+t*dx,y:a.y+t*dy});
+}
+function pathDistance(points,path){
+ let total=0;
+ for(const p of points){
+  let nearest=Infinity;
+  for(let i=1;i<path.length;i++)nearest=Math.min(nearest,pointToSegmentDistance(p,path[i-1],path[i]));
+  total+=nearest;
+ }
+ return total/Math.max(1,points.length);
+}
 function strokeScore(user,expected){
- const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h})));
- const b=resample(expected.map(p=>({x:p[0],y:p[1]})));
- if(a.length<4)return Infinity;
- const mean=a.reduce((sum,p,j)=>sum+dist(p,b[j]),0)/a.length;
- return mean*.7+(dist(a[0],b[0])+dist(a.at(-1),b.at(-1)))*.15;
+ const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h})),48);
+ const b=resample(expected.map(p=>({x:p[0],y:p[1]})),48);
+ if(a.length<4||b.length<2)return Infinity;
+ // Porównujemy przebieg obu linii, a nie punkt po punkcie. Dzięki temu naturalne,
+ // zaokrąglone łuki i różne tempo rysowania nie powodują fałszywego odrzucenia.
+ const forward=pathDistance(a,b),reverse=pathDistance(b,a);
+ return (forward+reverse)/2;
 }
 function evaluate(){
  const t=DATA.templates[state.letter]||[];
@@ -87,7 +104,7 @@ function evaluate(){
  const index=count-1;
  if(index<0)return;
  const score=strokeScore(state.strokes[index],t[index]);
- if(!Number.isFinite(score)||score>.29){rejectStroke('Ten ruch nie pasuje do wzoru albo został wykonany w złej kolejności. Pole wyczyszczono — spróbuj ponownie.');return}
+ if(!Number.isFinite(score)||score>.115){rejectStroke('Kształt tego ruchu wyraźnie odbiega od wzoru. Spróbuj jeszcze raz, prowadząc linię po właściwym kształcie.');return}
  if(count<t.length){$('#feedback').textContent='Dobrze! Wykonano '+count+' z '+t.length+' ruchów. Teraz kolejny ruch.';return}
  $('#feedback').textContent='Świetnie! Wszystkie ruchy pasują do wzoru.';$('#save').disabled=false;
 }
