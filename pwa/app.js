@@ -3,9 +3,10 @@ const DATA = {"alphabet":["A","Ą","B","C","Ć","D","E","Ę","F","G","H","I","J"
 
 // Wzory pochodzą z gotowego, walidowanego zbioru ścieżek pisania.
 let LETTER_PATHS = null;
+let LETTER_POINTS = null;
 function templateFor(letter){
- const model=LETTER_PATHS?.letters?.[letter];
- return model ? model.strokes.map(s=>s.points) : [];
+ const model=LETTER_POINTS?.letters?.[letter];
+ return model ? model.strokes.map(s=>s.dots) : [];
 }
 function letterTransform(letter,width,height){
  const model=LETTER_PATHS?.letters?.[letter];
@@ -68,7 +69,7 @@ function renderHome(){
  renderStats();
 }
 function openLetter(ch){
- if(!LETTER_PATHS?.letters?.[ch]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
+ if(!LETTER_PATHS?.letters?.[ch]||!LETTER_POINTS?.letters?.[ch]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
  state.letter=ch;state.strokes=[];state.current=[];state.saved=false;
  $('#home').hidden=true;$('#practice').hidden=false;
  $('#letterTitle').textContent=ch+'  '+ch.toLowerCase();
@@ -133,13 +134,13 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>'Ruch '+(i+1)+': zacznij przy pomarańczowym punkcie i prowadź palec po zaznaczonej ścieżce, zgodnie ze strzałką.');
+ const steps=guideOverrides[ch]||template.map((stroke,i)=>'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.');
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
- $('#feedback').textContent=ch==='A'?'Etap 1 z 2: od lewego dołu do szczytu, a potem w dół po prawej — jednym ruchem.':'Zacznij od pomarańczowego punktu i prowadź palec zgodnie ze strzałką.';
+ $('#feedback').textContent='Zacznij w pomarańczowym punkcie 1. Prowadź palec kolejno przez ponumerowane punkty.';
  $('#save').disabled=true;draw();
  speak('Litera '+ch);
 }
@@ -158,84 +159,88 @@ function draw(){
  ctx.fillRect(0,0,rect.width,rect.height);
  const model=LETTER_PATHS?.letters?.[state.letter];
  const transform=letterTransform(state.letter,rect.width,rect.height);
- if(!model||!transform)return;
- // Jasny obrys daje prawdziwe proporcje litery, a ścieżki pokazują kolejność ruchów.
+ if(!model||!transform||!LETTER_POINTS?.letters?.[state.letter])return;
+
+ // Delikatny obrys pozwala rozpoznać literę. Główną instrukcją są numerowane punkty.
  if(model.outline && typeof Path2D!=='undefined'){
   try{
    ctx.save();
    ctx.translate(transform.offsetX-transform.frameX*transform.scale,transform.offsetY-transform.frameY*transform.scale);
    ctx.scale(transform.scale,transform.scale);
-   ctx.fillStyle='rgba(77,83,170,.105)';
+   ctx.fillStyle='rgba(77,83,170,.075)';
    ctx.fill(new Path2D(model.outline),'evenodd');
    ctx.restore();
   }catch(e){ctx.restore();}
  }
+
  const template=templateFor(state.letter);
  const rendered=template.map((stroke,i)=>strokePath(state.letter,i,stroke).map(p=>({x:p.x*rect.width,y:p.y*rect.height})));
- const baseWidth=Math.max(7,Math.min(18,transform.scale*(LETTER_PATHS.strokeHalf||0.0069)*2));
  rendered.forEach((points,i)=>{
-  if(!points.length)return;
-  // Delikatna, ciągła linia pod spodem; przerywana linia wskazuje dokładny tor palca.
+  if(points.length<2)return;
+  const completed=i<state.strokes.length;
+  const active=i===state.strokes.length;
+
+  // Linia pomocnicza jest tylko tłem dla punktów, nie zastępuje ich numeracji.
   ctx.beginPath();
   points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  ctx.setLineDash([]);
-  ctx.strokeStyle=i<state.strokes.length?'rgba(42,150,105,.25)':'rgba(77,83,170,.20)';
-  ctx.lineWidth=baseWidth*1.8;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  ctx.stroke();
-  ctx.beginPath();
-  points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  ctx.setLineDash([2,7]);
-  ctx.strokeStyle=i<state.strokes.length?'rgba(42,150,105,.82)':i===state.strokes.length?'rgba(77,83,170,.95)':'rgba(77,83,170,.68)';
-  ctx.lineWidth=Math.max(3,baseWidth*.58);
+  ctx.setLineDash([2,6]);
+  ctx.strokeStyle=completed?'rgba(42,150,105,.34)':active?'rgba(89,84,166,.34)':'rgba(89,84,166,.18)';
+  ctx.lineWidth=2;
   ctx.lineCap='round';
   ctx.lineJoin='round';
   ctx.stroke();
   ctx.setLineDash([]);
-  let length=0;
-  for(let j=1;j<points.length;j++)length+=dist(points[j-1],points[j]);
-  if(length>24){
-   const target=length*.68;
-   let walked=0;
-   for(let j=1;j<points.length;j++){
-    const a=points[j-1],b=points[j],segment=dist(a,b);
-    if(walked+segment>=target){
-     const t=(target-walked)/Math.max(segment,.001);
-     const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
-     const angle=Math.atan2(b.y-a.y,b.x-a.x),size=Math.max(8,baseWidth*.9);
+
+  points.forEach((p,j)=>{
+   const isStart=j===0;
+   const isEnd=j===points.length-1;
+   let labelX=p.x,labelY=p.y;
+   let radius=isStart?10.5:isEnd?8.5:7.8;
+
+   if(isStart){
+    const duplicate=rendered.slice(0,i).some(path=>path.length&&dist(path[0],p)<24);
+    if(duplicate){
+     const side=i%2===0?-1:1;
+     labelX+=side*18;
+     labelY-=13;
      ctx.beginPath();
-     ctx.moveTo(x+Math.cos(angle)*size,y+Math.sin(angle)*size);
-     ctx.lineTo(x-Math.cos(angle)*size*.8+Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8-Math.cos(angle)*size*.65);
-     ctx.lineTo(x-Math.cos(angle)*size*.8-Math.sin(angle)*size*.65,y-Math.sin(angle)*size*.8+Math.cos(angle)*size*.65);
-     ctx.closePath();
-     ctx.fillStyle='#5954a6';
+     ctx.moveTo(p.x,p.y);
+     ctx.lineTo(labelX,labelY);
+     ctx.strokeStyle=completed?'#29966a':'#f28a35';
+     ctx.lineWidth=1.5;
+     ctx.stroke();
+     ctx.beginPath();
+     ctx.arc(p.x,p.y,4.5,0,Math.PI*2);
+     ctx.fillStyle=completed?'#29966a':'#f28a35';
      ctx.fill();
-     break;
     }
-    walked+=segment;
    }
-  }
-  const p=points[0];
-  let markerX=p.x,markerY=p.y;
-  const priorStarts=rendered.slice(0,i).filter(s=>s.length&&dist(s[0],p)<Math.max(18,baseWidth*2.5)).length;
-  if(priorStarts>0){markerX+=(i%2===0?-1:1)*Math.max(17,baseWidth*2);markerY-=2;}
-  ctx.beginPath();
-  ctx.arc(markerX,markerY,Math.max(10,baseWidth*1.05),0,Math.PI*2);
-  ctx.fillStyle=i<state.strokes.length?'#29966a':'#f28a35';
-  ctx.fill();
-  ctx.fillStyle='#fff';
-  ctx.font='bold 12px system-ui';
-  ctx.textAlign='center';
-  ctx.textBaseline='middle';
-  ctx.fillText(String(i+1),markerX,markerY);
-  if(i===0){
-   ctx.font='800 10px system-ui';
-   ctx.textAlign='left';
-   ctx.fillStyle='#b85b16';
-   ctx.fillText('START',markerX+Math.max(14,baseWidth*1.3),markerY+3);
-  }
+
+   ctx.beginPath();
+   ctx.arc(labelX,labelY,radius,0,Math.PI*2);
+   if(completed){
+    ctx.fillStyle='#29966a';
+    ctx.strokeStyle='#237f5b';
+   }else if(isStart){
+    ctx.fillStyle='#f28a35';
+    ctx.strokeStyle='#d87522';
+   }else{
+    ctx.fillStyle=isEnd?'#eeeaff':'#fff';
+    ctx.strokeStyle='#5954a6';
+   }
+   ctx.lineWidth=isStart?1.5:1.8;
+   ctx.fill();
+   ctx.stroke();
+
+   ctx.fillStyle=completed||isStart?'#fff':'#514c9a';
+   ctx.font=(isStart?'bold 10px':String(j+1).length>1?'bold 6.5px':'bold 8px')+' system-ui';
+   ctx.textAlign='center';
+   ctx.textBaseline='middle';
+   ctx.fillText(String(j+1),labelX,labelY+.25);
+  });
  });
+
+ // Ślad dziecka jest rysowany nad punktami.
  [...state.strokes,state.current].forEach(points=>{
   if(!points.length)return;
   ctx.beginPath();
@@ -272,25 +277,77 @@ function pathDistance(points,path){
  }
  return total/Math.max(1,points.length);
 }
+function resampleBySpacing(points,spacing=4){
+ if(points.length<2)return points.slice();
+ const lengths=[0];
+ for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+dist(points[i-1],points[i]));
+ const total=lengths.at(-1);
+ if(total<.001)return points.slice(0,1);
+ const result=[];
+ let seg=1;
+ for(let target=0;target<total;target+=spacing){
+  while(seg<lengths.length-1&&lengths[seg]<target)seg++;
+  const span=Math.max(.0001,lengths[seg]-lengths[seg-1]);
+  const t=Math.max(0,Math.min(1,(target-lengths[seg-1])/span));
+  result.push({
+   x:points[seg-1].x+(points[seg].x-points[seg-1].x)*t,
+   y:points[seg-1].y+(points[seg].y-points[seg-1].y)*t
+  });
+ }
+ result.push(points[points.length-1]);
+ return result;
+}
+function expectedDots(letter,index){
+ const stroke=templateFor(letter)[index]||[];
+ return strokePath(letter,index,stroke).map(p=>({x:p.x*state.size.w,y:p.y*state.size.h}));
+}
 function strokeScore(user,expected){
- const a=resample(user.map(p=>({x:p.x/state.size.w,y:p.y/state.size.h})),48);
- const b=resample(strokePath(state.letter,state.strokes.length-1,expected),48);
- if(a.length<4||b.length<2)return Infinity;
- // Zachowujemy kolejność i kierunek ruchu, tolerując drobne odchylenia od wzoru.
- let total=0;
- for(let i=0;i<Math.min(a.length,b.length);i++)total+=dist(a[i],b[i]);
- return total/Math.min(a.length,b.length);
+ if(user.length<2||expected.length<2)return {pass:false,coverage:0,matched:0,total:expected.length};
+ const trace=resampleBySpacing(user,4);
+ const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
+ const startDistance=dist(trace[0],expected[0]);
+ const endDistance=dist(trace[trace.length-1],expected[expected.length-1]);
+ if(startDistance>tolerance*1.35||endDistance>tolerance*1.35)
+  return {pass:false,coverage:0,matched:0,total:expected.length};
+ let matched=0,cursor=0,distanceSum=0;
+ for(const dot of expected){
+  let nearest=Infinity,nearestIndex=-1;
+  for(let i=cursor;i<trace.length;i++){
+   const d=dist(trace[i],dot);
+   if(d<nearest){nearest=d;nearestIndex=i;}
+  }
+  if(nearestIndex>=0&&nearest<=tolerance){
+   matched++;
+   distanceSum+=nearest;
+   cursor=Math.min(trace.length-1,nearestIndex+1);
+  }
+ }
+ const coverage=matched/expected.length;
+ const average=matched?distanceSum/matched:Infinity;
+ const minimum=expected.length<=5?.70:.76;
+ return {
+  pass:coverage>=minimum&&average<=tolerance*.85,
+  coverage,matched,total:expected.length,average,startDistance,endDistance
+ };
 }
 function evaluate(){
- const t=templateFor(state.letter);
+ const template=templateFor(state.letter);
  const count=state.strokes.length;
- if(count>t.length){rejectStroke('Za dużo ruchów. Zacznij jeszcze raz i wykonuj każdy ruch osobno.');return}
+ if(count>template.length){rejectStroke('Za dużo ruchów. Wyczyść pole i spróbuj ponownie.');return}
  const index=count-1;
  if(index<0)return;
- const score=strokeScore(state.strokes[index],t[index]);
- if(!Number.isFinite(score)||score>.145){rejectStroke('Kształt tego ruchu wyraźnie odbiega od wzoru. Spróbuj jeszcze raz, prowadząc linię po właściwym kształcie.');return}
- if(count<t.length){$('#feedback').textContent='Dobrze! Teraz wykonaj ruch '+(count+1)+' z '+t.length+', zgodnie ze strzałką.';return}
- $('#feedback').textContent='Świetnie! Wszystkie ruchy pasują do wzoru.';$('#save').disabled=false;
+ const expected=expectedDots(state.letter,index);
+ const result=strokeScore(state.strokes[index],expected);
+ if(!result.pass){
+  rejectStroke('Nie połączono wystarczającej liczby punktów ('+result.matched+'/'+result.total+'). Zacznij w punkcie 1 i prowadź palec po kolei.');
+  return;
+ }
+ if(count<template.length){
+  $('#feedback').textContent='Dobrze! Ruch '+count+' z '+template.length+' ukończony. Teraz kolejny zestaw punktów.';
+  return;
+ }
+ $('#feedback').textContent='Świetnie! Wszystkie punkty zostały połączone we właściwej kolejności.';
+ $('#save').disabled=false;
 }
 function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
@@ -319,20 +376,29 @@ window.addEventListener('resize',()=>{if(state.letter)draw()});
 if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();}catch(e){console.warn('PWA update unavailable',e)}});
 async function initializeLetterData(){
  try{
-  const response=await fetch('./letter-paths.json?v=21');
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  const dataset=await response.json();
-  const missing=DATA.alphabet.filter(ch=>!dataset.letters?.[ch]||!dataset.letters[ch].strokes?.length);
-  if(missing.length)throw new Error('Brak wzorów: '+missing.join(', '));
-  LETTER_PATHS=dataset;
+  const [pathResponse,pointResponse]=await Promise.all([
+   fetch('./letter-paths.json?v=22'),
+   fetch('./letter-points.json?v=22')
+  ]);
+  if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
+  const pathData=await pathResponse.json();
+  const pointData=await pointResponse.json();
+  const missing=DATA.alphabet.filter(ch=>{
+   const paths=pathData.letters?.[ch]?.strokes||[];
+   const dots=pointData.letters?.[ch]?.strokes||[];
+   return !paths.length||paths.length!==dots.length||dots.some(s=>!Array.isArray(s.dots)||s.dots.length<2);
+  });
+  if(missing.length)throw new Error('Niekompletne opunktowanie liter: '+missing.join(', '));
+  LETTER_PATHS=pathData;
+  LETTER_POINTS=pointData;
   renderHome();
   const requested=new URLSearchParams(window.location.search).get('letter');
   if(requested&&DATA.alphabet.includes(requested.toUpperCase()))openLetter(requested.toUpperCase());
  }catch(error){
-  console.error('Nie udało się wczytać wzorów liter',error);
+  console.error('Nie udało się wczytać systemu punktów liter',error);
   renderHome();
   const intro=$('#home .intro p');
-  if(intro)intro.textContent='Nie udało się załadować wzorów liter. Odśwież stronę po zakończeniu publikacji.';
+  if(intro)intro.textContent='Nie udało się załadować systemu punktów liter. Odśwież stronę po zakończeniu publikacji.';
  }
 }
 initializeLetterData();
