@@ -11,6 +11,9 @@ function templateFor(letter){
 function isPressPoint(letter,index){
  return !!LETTER_POINTS?.letters?.[letter]?.strokes?.[index]?.press;
 }
+function isClosedStroke(letter,index){
+ return !!LETTER_POINTS?.letters?.[letter]?.strokes?.[index]?.closed;
+}
 function letterTransform(letter,width,height){
  const model=LETTER_PATHS?.letters?.[letter];
  if(!model || !width || !height) return null;
@@ -137,7 +140,7 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.');
+ const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.'+(isClosedStroke(ch,i)?' Na końcu wróć do punktu 1, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
@@ -305,7 +308,9 @@ function resampleBySpacing(points,spacing=4){
 }
 function expectedDots(letter,index){
  const stroke=templateFor(letter)[index]||[];
- return strokePath(letter,index,stroke).map(p=>({x:p.x*state.size.w,y:p.y*state.size.h}));
+ const points=strokePath(letter,index,stroke).map(p=>({x:p.x*state.size.w,y:p.y*state.size.h}));
+ if(isClosedStroke(letter,index)&&points.length>1)points.push({...points[0]});
+ return points;
 }
 function refreshDotProgress(){
  if(!state.letter||!state.current.length)return;
