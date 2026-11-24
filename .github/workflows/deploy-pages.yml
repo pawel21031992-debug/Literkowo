@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -48,13 +49,18 @@ jobs:
       - name: Install audio generation tools
         if: steps.audio-cache.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
           python -m pip install --upgrade pip
-          python -m pip install piper-tts
+          python -c "import piper" >/dev/null 2>&1 || python -m pip install piper-tts
       - name: Download Polish neural voice
         if: steps.audio-cache.outputs.cache-hit != 'true'
-        run: python -m piper.download_voices pl_PL-gosia-medium --data-dir ./.voice
+        run: |
+          if [ ! -s "./.voice/pl_PL-gosia-medium.onnx" ]; then
+            python -m piper.download_voices pl_PL-gosia-medium --data-dir ./.voice
+          fi
       - name: Generate offline Polish audio clips
         if: steps.audio-cache.outputs.cache-hit != 'true'
         run: |
@@ -65,6 +71,21 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: ./pwa
+      - name: Wait for GitHub Pages artifact to become available
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 12); do
+            artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id' | head -n 1)
+            if [ -n "$artifact_id" ]; then
+              echo "GitHub Pages artifact is visible: $artifact_id"
+              exit 0
+            fi
+            echo "Artifact metadata not visible yet (attempt $attempt/12). Retrying in 5 seconds..."
+            sleep 5
+          done
+          echo "GitHub Pages artifact did not become visible through the Actions API." >&2
+          exit 1
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5
