@@ -135,9 +135,14 @@ def phrases_for(data, path_data, point_data):
                     )
                 else:
                     count = len(stroke["dots"])
+                    ending = (
+                        " Na końcu wróć do punktu 1, aby zamknąć kształt."
+                        if stroke.get("closed") else ""
+                    )
                     steps.append(
                         f"Ruch {index + 1}: zacznij w pomarańczowym punkcie 1 i połącz "
                         f"kolejno wszystkie {count} ponumerowane punkty aż do końca ścieżki."
+                        + ending
                     )
         guide = ". ".join(steps)
         phrases.add(f"Jak napisać literę {letter}. {guide}")
