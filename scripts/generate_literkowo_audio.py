@@ -35,7 +35,9 @@ def load_data(app_js: Path):
     data = json.loads(match.group(1))
     paths_file = app_js.with_name('letter-paths.json')
     path_data = json.loads(paths_file.read_text(encoding='utf-8'))
-    return data, path_data
+    points_file = app_js.with_name('letter-points.json')
+    point_data = json.loads(points_file.read_text(encoding='utf-8'))
+    return data, path_data, point_data
 
 
 def position(point):
@@ -117,19 +119,26 @@ GUIDE_OVERRIDES = {
 }
 
 
-def phrases_for(data, path_data):
+def phrases_for(data, path_data, point_data):
     phrases = set()
-    letters = path_data["letters"]
+    letters = point_data["letters"]
     for letter in data["alphabet"]:
         phrases.add(f"Litera {letter}")
         model = letters[letter]
         steps = GUIDE_OVERRIDES.get(letter)
         if steps is None:
-            steps = [
-                f"Ruch {index + 1}: zacznij przy pomarańczowym punkcie i prowadź palec "
-                "po zaznaczonej ścieżce, zgodnie ze strzałką."
-                for index, _ in enumerate(model["strokes"])
-            ]
+            steps = []
+            for index, stroke in enumerate(model["strokes"]):
+                if stroke.get("press"):
+                    steps.append(
+                        f"Ruch {index + 1}: dotknij pomarańczowego punktu 1 i oderwij palec."
+                    )
+                else:
+                    count = len(stroke["dots"])
+                    steps.append(
+                        f"Ruch {index + 1}: zacznij w pomarańczowym punkcie 1 i połącz "
+                        f"kolejno wszystkie {count} ponumerowane punkty aż do końca ścieżki."
+                    )
         guide = ". ".join(steps)
         phrases.add(f"Jak napisać literę {letter}. {guide}")
 
@@ -149,8 +158,8 @@ def main():
     parser.add_argument("--output", default=Path("pwa/audio"), type=Path)
     args = parser.parse_args()
 
-    data, path_data = load_data(args.app)
-    phrases = phrases_for(data, path_data)
+    data, path_data, point_data = load_data(args.app)
+    phrases = phrases_for(data, path_data, point_data)
     args.output.mkdir(parents=True, exist_ok=True)
     voice = PiperVoice.load(str(args.model))
 
