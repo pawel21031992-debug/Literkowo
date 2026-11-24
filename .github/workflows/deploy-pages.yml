@@ -68,7 +68,7 @@ jobs:
             --model ./.voice/pl_PL-gosia-medium.onnx \
             --output ./pwa/audio
       - name: Upload PWA
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./pwa
       - name: Wait for GitHub Pages artifact to become available
@@ -79,6 +79,7 @@ jobs:
             artifact_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[] | select(.name == "github-pages" and .expired == false) | .id' | head -n 1)
             if [ -n "$artifact_id" ]; then
               echo "GitHub Pages artifact is visible: $artifact_id"
+              sleep 10
               exit 0
             fi
             echo "Artifact metadata not visible yet (attempt $attempt/12). Retrying in 5 seconds..."
@@ -88,4 +89,4 @@ jobs:
           exit 1
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
