@@ -29,7 +29,7 @@ def audio_key(text: str) -> str:
 
 def load_data(app_js: Path):
     source = app_js.read_text(encoding="utf-8")
-    match = re.search(r"const DATA = (\{.*?\});\s*\nconst \$", source, re.S)
+    match = re.search(r"const DATA = (\{.*?\});", source, re.S)
     if not match:
         raise RuntimeError("Could not extract DATA from pwa/app.js")
     return json.loads(match.group(1))
