@@ -140,7 +140,7 @@ function openLetter(ch){
  $('#letterTitle').textContent=display;
  $('#example').textContent='Przykładowe słowo: '+(DATA.examples[base]||base.toLowerCase());
  $('#guideList').innerHTML='';
- const template=templateFor(ch);
+ const template=templateFor(display);
  $('#guideList').hidden=state.difficulty==='memory';
  $('#guideHint').textContent=state.difficulty==='guided'
   ?'Pomarańczowy znacznik pokazuje, gdzie zacząć. Strzałki wskazują kierunek prowadzenia palca.'
@@ -205,7 +205,7 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=(state.letterCase==='upper'?guideOverrides[base]:null)||template.map((stroke,i)=>isPressPoint(display,i)?'Dotknij pomarańczowego znacznika.':'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.'+(isClosedStroke(display,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
+ const steps=(state.letterCase==='upper'?guideOverrides[base]:null)||template.map((stroke,i)=>isPressPoint(display,i)?'Dotknij miejsca, w którym należy postawić znak.':(state.difficulty==='guided'?'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.':'Przyjrzyj się kształtowi i poprowadź palec wzdłuż litery.')+(isClosedStroke(display,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^Ruch [0-9]+: /,i===0?'Najpierw: ':'Następnie: ');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(base);
  const syllables=vowel?[display.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>display.toLowerCase()+x);
@@ -462,7 +462,8 @@ function evaluate(){
  const expected=expectedDots(state.letter,index);
  const result=strokeScore(state.strokes[index],expected);
  if(!result.pass){
-  rejectStroke(result.total===1?'Dotknij pomarańczowego znacznika.':'Spróbuj ponownie. Zacznij przy pomarańczowym znaczniku i podążaj za strzałkami.');
+  const guided=state.difficulty==='guided';
+  rejectStroke(result.total===1?(guided?'Dotknij pomarańczowego znacznika.':'Dotknij miejsca, w którym należy postawić znak.'):(guided?'Spróbuj ponownie. Zacznij przy pomarańczowym znaczniku i podążaj za strzałkami.':'Spróbuj ponownie. Poprowadź palec wzdłuż kształtu litery.'));
   return;
  }
  if(count<template.length){
