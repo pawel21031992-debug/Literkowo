@@ -143,7 +143,21 @@ function evaluate(){
 }
 function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
-$('#save').addEventListener('click',()=>{if($('#save').disabled)return;if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true});
+function saveCurrentLetter(){
+  if($('#save').disabled)return false;
+  if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}
+  state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true;
+  return true;
+ }
+ $('#save').addEventListener('click',saveCurrentLetter);
+ $('#nextLetter').addEventListener('click',()=>{
+  // Jeżeli wszystkie ruchy zostały poprawnie wykonane, zapisz literę automatycznie.
+  // W przeciwnym razie przejdź dalej bez zaliczania jej — to bezpieczne pominięcie.
+  saveCurrentLetter();
+  const index=DATA.alphabet.indexOf(state.letter);
+  if(index>=0&&index<DATA.alphabet.length-1)openLetter(DATA.alphabet[index+1]);
+  else renderHome();
+ });
 $('#speakLetter').addEventListener('click',()=>speak('Litera '+(state.letter||'')));
 $('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
 $('#back').addEventListener('click',renderHome);
