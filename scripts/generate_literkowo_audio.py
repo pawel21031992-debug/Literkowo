@@ -32,7 +32,10 @@ def load_data(app_js: Path):
     match = re.search(r"const DATA = (\{.*?\});", source, re.S)
     if not match:
         raise RuntimeError("Could not extract DATA from pwa/app.js")
-    return json.loads(match.group(1))
+    data = json.loads(match.group(1))
+    paths_file = app_js.with_name('letter-paths.json')
+    path_data = json.loads(paths_file.read_text(encoding='utf-8'))
+    return data, path_data
 
 
 def position(point):
@@ -54,43 +57,79 @@ def direction(stroke):
     return "ukośnie w dół i w lewo" if dy >= 0 else "ukośnie w górę i w lewo"
 
 
-def phrases_for(data):
+GUIDE_OVERRIDES = {
+    "A": [
+        "Ruch 1: zacznij na szczycie i poprowadź ukośną kreskę w dół po lewej stronie.",
+        "Ruch 2: zacznij ponownie na szczycie i poprowadź drugą ukośną kreskę w dół po prawej stronie.",
+        "Ruch 3: narysuj poprzeczną kreskę od lewej do prawej.",
+    ],
+    "Ą": [
+        "Ruch 1: od szczytu poprowadź lewą ukośną kreskę w dół.",
+        "Ruch 2: od szczytu poprowadź prawą ukośną kreskę w dół.",
+        "Ruch 3: narysuj poprzeczną kreskę od lewej do prawej.",
+        "Ruch 4: dodaj ogonek przy prawej dolnej części litery.",
+    ],
+    "B": [
+        "Ruch 1: narysuj pionową kreskę od góry do dołu.",
+        "Ruch 2: od góry poprowadź łuk górnej części w prawo i wróć do środka.",
+        "Ruch 3: od środka poprowadź dolny łuk w prawo i zakończ na dole przy pionowej kresce.",
+    ],
+    "M": [
+        "Ruch 1: narysuj lewą pionową kreskę z góry na dół.",
+        "Ruch 2: od górnej części lewej strony poprowadź ukośną kreskę do środkowego dołka.",
+        "Ruch 3: od środkowego dołka poprowadź ukośną kreskę do góry po prawej.",
+        "Ruch 4: narysuj prawą pionową kreskę z góry na dół.",
+    ],
+    "N": [
+        "Ruch 1: narysuj lewą pionową kreskę z góry na dół.",
+        "Ruch 2: połącz górę lewej strony z dołem prawej strony jedną ukośną kreską.",
+        "Ruch 3: narysuj prawą pionową kreskę z góry na dół.",
+    ],
+    "Ń": [
+        "Ruch 1: narysuj lewą pionową kreskę z góry na dół.",
+        "Ruch 2: poprowadź ukośną kreskę od góry po lewej do dołu po prawej.",
+        "Ruch 3: narysuj prawą pionową kreskę z góry na dół.",
+        "Ruch 4: dodaj kreskę nad literą.",
+    ],
+    "Ł": [
+        "Ruch 1: narysuj pionową kreskę z góry na dół.",
+        "Ruch 2: dodaj dolną poziomą kreskę.",
+        "Ruch 3: narysuj ukośną kreskę przechodzącą przez literę.",
+    ],
+    "Ę": [
+        "Ruch 1: narysuj pionową kreskę z góry na dół.",
+        "Ruch 2: dodaj górną poziomą kreskę.",
+        "Ruch 3: dodaj środkową poziomą kreskę.",
+        "Ruch 4: dodaj dolną poziomą kreskę.",
+        "Ruch 5: dorysuj ogonek przy prawej dolnej części litery.",
+    ],
+    "Z": [
+        "Ruch 1: jednym ciągłym ruchem narysuj górną kreskę, ukośną część i dolną kreskę.",
+    ],
+    "Ź": [
+        "Ruch 1: jednym ruchem narysuj kształt litery Z.",
+        "Ruch 2: dodaj kreskę nad literą.",
+    ],
+    "Ż": [
+        "Ruch 1: jednym ruchem narysuj kształt litery Z.",
+        "Ruch 2: dodaj kropkę nad literą.",
+    ],
+}
+
+
+def phrases_for(data, path_data):
     phrases = set()
+    letters = path_data["letters"]
     for letter in data["alphabet"]:
         phrases.add(f"Litera {letter}")
-        template = data["templates"][letter]
-        custom_steps = {
-            "A": [
-                "Etap 1: zacznij w lewym dolnym rogu. Jednym ciągłym ruchem poprowadź palec do góry, do szczytu, a następnie w dół na prawą stronę. Nie odrywaj palca na szczycie.",
-                "Etap 2: oderwij palec i narysuj poziomą kreskę od lewej do prawej.",
-            ],
-            "Ą": [
-                "Etap 1: jednym ruchem narysuj obie ukośne nogi: od lewego dołu przez szczyt do prawego dołu.",
-                "Etap 2: narysuj poziomą kreskę w środku.",
-                "Etap 3: dodaj ogonek przy prawej dolnej części litery.",
-            ],
-            "M": [
-                "Etap 1: zacznij u góry po lewej, zejdź w dół, unieś linię do środkowego dołka, poprowadź ją do góry po prawej i zejdź na dół. To jeden ciągły ruch.",
-            ],
-            "N": [
-                "Etap 1: zacznij u góry po lewej, zejdź w dół, poprowadź ukośną linię do góry po prawej i zejdź na dół. Nie odrywaj palca.",
-            ],
-            "Ń": [
-                "Etap 1: napisz literę N jednym ciągłym ruchem.",
-                "Etap 2: dodaj kreskę nad literą.",
-            ],
-        }
-        steps = custom_steps.get(letter)
+        model = letters[letter]
+        steps = GUIDE_OVERRIDES.get(letter)
         if steps is None:
-            steps = []
-            for index, stroke in enumerate(template):
-                curved = len(stroke) > 4
-                closed = math.hypot(stroke[0][0] - stroke[-1][0], stroke[0][1] - stroke[-1][1]) < .12
-                motion = ("płynnym łukiem " if curved else "po obwodzie " if closed else "")
-                steps.append(
-                    f"Ruch {index + 1}: zacznij {position(stroke[0])}, prowadź palec "
-                    f"{motion}{direction(stroke)} i zakończ w oznaczonym miejscu."
-                )
+            steps = [
+                f"Ruch {index + 1}: zacznij przy pomarańczowym punkcie i prowadź palec "
+                "po zaznaczonej ścieżce, zgodnie ze strzałką."
+                for index, _ in enumerate(model["strokes"])
+            ]
         guide = ". ".join(steps)
         phrases.add(f"Jak napisać literę {letter}. {guide}")
 
@@ -110,8 +149,8 @@ def main():
     parser.add_argument("--output", default=Path("pwa/audio"), type=Path)
     args = parser.parse_args()
 
-    data = load_data(args.app)
-    phrases = phrases_for(data)
+    data, path_data = load_data(args.app)
+    phrases = phrases_for(data, path_data)
     args.output.mkdir(parents=True, exist_ok=True)
     voice = PiperVoice.load(str(args.model))
 
