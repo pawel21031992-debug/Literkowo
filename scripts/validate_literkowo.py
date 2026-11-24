@@ -24,8 +24,10 @@ def finite_points(points, context):
 
 def expected_stroke(stroke, spacing):
     source = stroke.get("points", [])
-    if len(source) < 2:
-        fail("Every source stroke must have at least two path coordinates")
+    if len(source) == 1:
+        return [[round(source[0][0], 5), round(source[0][1], 5)]], False
+    if len(source) < 1:
+        fail("Every source stroke must have at least one path coordinate")
     total = sum(distance(source[index - 1], source[index]) for index in range(1, len(source)))
     closed = total > spacing * 2.5 and distance(source[0], source[-1]) <= spacing * 0.5
     dots = sample_path(source, spacing)
@@ -45,7 +47,8 @@ def main():
 
     path_letters = paths.get("letters", {})
     point_letters = points.get("letters", {})
-    expected_keys = set(POLISH_ALPHABET)
+    expected_letters = POLISH_ALPHABET + [letter.lower() for letter in POLISH_ALPHABET]
+    expected_keys = set(expected_letters)
     if set(path_letters) != expected_keys:
         fail("letter-paths.json does not contain exactly the 32 Polish letters")
     if set(point_letters) != expected_keys:
@@ -55,7 +58,7 @@ def main():
     stroke_count = 0
     dot_count = 0
 
-    for letter in POLISH_ALPHABET:
+    for letter in expected_letters:
         model = path_letters[letter]
         source_strokes = model.get("strokes", [])
         numbered_strokes = point_letters[letter].get("strokes", [])
