@@ -143,7 +143,7 @@ function openLetter(ch){
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
- $('#feedback').textContent='Zacznij w pomarańczowym punkcie 1. Prowadź palec kolejno przez ponumerowane punkty.';
+ $('#feedback').textContent='Zacznij w pomarańczowym punkcie 1. Prowadź palec kolejno przez ponumerowane punkty. Trafione punkty zmieniają kolor na zielony.';
  $('#save').disabled=true;draw();
  speak('Litera '+ch);
 }
@@ -412,8 +412,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=22'),
-   fetch('./letter-points.json?v=22')
+   fetch('./letter-paths.json?v=23'),
+   fetch('./letter-points.json?v=23')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
