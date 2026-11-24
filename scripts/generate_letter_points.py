@@ -22,12 +22,8 @@ def sample_path(points, spacing):
     if total <= 1e-9:
         return [points[0], points[-1]]
 
-    targets = [0.0]
-    position = spacing
-    while position < total - 1e-9:
-        targets.append(position)
-        position += spacing
-    targets.append(total)
+    intervals = max(1, math.ceil(total / spacing))
+    targets = [total * index / intervals for index in range(intervals + 1)]
 
     result = []
     segment = 1
