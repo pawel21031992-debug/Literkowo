@@ -178,7 +178,7 @@ function openLetter(ch){
   ]
  };
  const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Dotknij pomarańczowego znacznika.':'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.'+(isClosedStroke(ch,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
- steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
+ steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^Ruch \\d+:\\s*/,i===0?'Najpierw: ':'Następnie: ').replace(/^\\s*\\d+[.)]\\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
@@ -472,8 +472,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=30'),
-   fetch('./letter-points.json?v=30')
+   fetch('./letter-paths.json?v=31'),
+   fetch('./letter-points.json?v=31')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
