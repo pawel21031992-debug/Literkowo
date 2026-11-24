@@ -11,8 +11,10 @@ def distance(a, b):
 
 
 def sample_path(points, spacing):
-    if len(points) < 2:
-        raise ValueError("Every stroke must contain at least two points")
+    if len(points) == 1:
+        return [[round(points[0][0], 5), round(points[0][1], 5)]]
+    if len(points) < 1:
+        raise ValueError("Every stroke must contain at least one point")
 
     lengths = [0.0]
     for index in range(1, len(points)):
