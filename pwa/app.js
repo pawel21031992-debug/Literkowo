@@ -24,7 +24,7 @@ function strokePath(letter,index,stroke){
 const $ = (s) => document.querySelector(s);
 const state = { letter: null, strokes: [], current: [], size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
-function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats();if(accountToken)syncProgress()}
+function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
 const voiceAudio=new Audio();
 voiceAudio.preload='auto';
@@ -153,72 +153,3 @@ $('#markWord').addEventListener('click',()=>{const w=$('#selectedWord').value;if
 window.addEventListener('resize',()=>{if(state.letter)draw()});
 if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();}catch(e){console.warn('PWA update unavailable',e)}});
 renderHome();
-const accountTokenKey='literkowo.session';
-let accountToken=sessionStorage.getItem(accountTokenKey)||'';
-let accountUser=null;
-let syncQueue=Promise.resolve();
-async function accountApi(path,options={}){
- if(!API_BASE)throw new Error('Backend kont Supabase nie został jeszcze skonfigurowany.');
- const headers={'content-type':'application/json',...(options.headers||{})};
- if(accountToken)headers.Authorization='Bearer '+accountToken;
- const response=await fetch(API_BASE.replace(/\/+$/,'')+path,{...options,headers,credentials:'omit',cache:'no-store'});
- let data={};try{data=await response.json()}catch{}
- if(!response.ok)throw new Error(data.error||'Błąd połączenia z serwerem.');
- return data;
-}
-function showAccount(){
- const dialog=$('#accountDialog');dialog.hidden=false;
- if(!API_BASE){$('#accountStatus').textContent='Mechanizm kont jest przygotowany. Do uruchomienia potrzebne jest utworzenie bezpłatnego projektu Supabase, wgranie schematu bazy i wdrożenie API. Formularz uruchomimy po konfiguracji adresu projektu.';$('#accountForms').hidden=true;return}
- updateAccountView();
-}
-function updateAccountView(){
- $('#accountForms').hidden=!!accountUser;$('#accountLogged').hidden=!accountUser;
- $('#accountStatus').textContent=accountUser?'Postępy są powiązane z kontem i mogą być synchronizowane.':'Zaloguj się lub utwórz konto nickiem i hasłem.';
- if(accountUser){$('#accountUser').textContent='Zalogowano jako: '+accountUser.username;$('#accountOpen').textContent=accountUser.username}
- else $('#accountOpen').textContent='Konto';
-}
-async function syncProgress(){
- if(!accountToken||!API_BASE)return;
- const payload={completed:state.completed,words:state.words,stars:state.stars};
- syncQueue=syncQueue.then(()=>accountApi('/progress',{method:'PUT',body:JSON.stringify(payload)})).catch(error=>{$('#accountStatus').textContent='Nie udało się zsynchronizować postępów: '+error.message});
- return syncQueue;
-}
-async function completeAccountAuth(mode){
- const username=$('#accountNick').value.trim(),password=$('#accountPassword').value;
- if(!username||!password){$('#accountStatus').textContent='Wpisz nick i hasło.';return}
- try{
-  $('#accountStatus').textContent=mode==='register'?'Tworzę konto…':'Loguję…';
-  const data=await accountApi('/'+mode,{method:'POST',body:JSON.stringify({username,password})});
-  accountToken=data.token;sessionStorage.setItem(accountTokenKey,accountToken);accountUser=data.user;
-  const remote=await accountApi('/progress');
-  const p=remote.progress||{};
-  state.completed=[...new Set([...(p.completed||[]),...state.completed])];
-  state.words=[...new Set([...(p.words||[]),...state.words])];
-  state.stars=Math.max(Number(p.stars)||0,state.stars);
-  persist();await syncProgress();updateAccountView();renderHome();
-  $('#accountPassword').value='';
-  $('#accountStatus').textContent='Zalogowano. Postępy zostały połączone z kontem.';
- }catch(error){$('#accountStatus').textContent=error.message}
-}
-async function initAccounts(){
- $('#accountOpen').addEventListener('click',showAccount);
- $('#accountClose').addEventListener('click',()=>{$('#accountDialog').hidden=true});
- $('#accountDialog').addEventListener('click',e=>{if(e.target===$('#accountDialog'))$('#accountDialog').hidden=true});
- $('#accountLogin').addEventListener('click',()=>completeAccountAuth('login'));
- $('#accountRegister').addEventListener('click',()=>completeAccountAuth('register'));
- $('#accountLogout').addEventListener('click',async()=>{
-  try{await accountApi('/logout',{method:'POST'})}catch{}
-  accountToken='';accountUser=null;sessionStorage.removeItem(accountTokenKey);updateAccountView();$('#accountStatus').textContent='Wylogowano. Lokalne postępy pozostają na tym urządzeniu.';
- });
- $('#accountDelete').addEventListener('click',async()=>{
-  if(!confirm('Usunąć konto, zsynchronizowane postępy i zwolnić nick? Tej operacji nie można cofnąć.'))return;
-  try{await accountApi('/account',{method:'DELETE'});accountToken='';accountUser=null;sessionStorage.removeItem(accountTokenKey);state.completed=[];state.words=[];state.stars=0;persist();renderHome();updateAccountView();$('#accountStatus').textContent='Konto i dane zostały usunięte.'}
-  catch(error){$('#accountStatus').textContent=error.message}
- });
- if(accountToken&&API_BASE){
-  try{const me=await accountApi('/me');accountUser=me.user;const remote=await accountApi('/progress');const p=remote.progress||{};state.completed=[...new Set([...(p.completed||[]),...state.completed])];state.words=[...new Set([...(p.words||[]),...state.words])];state.stars=Math.max(Number(p.stars)||0,state.stars);persist();await syncProgress()}
-  catch{accountToken='';sessionStorage.removeItem(accountTokenKey)}
- }
- updateAccountView();
-}
-initAccounts();
