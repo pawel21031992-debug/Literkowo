@@ -29,6 +29,7 @@ function cors(request, env) {
   return { "access-control-allow-origin": origin, "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS", "access-control-allow-headers": "content-type, authorization", "vary": "Origin" };
 }
 async function rateLimit(request, env, bucket, limit) {
+  if (!env.RATE_LIMIT_SECRET || env.RATE_LIMIT_SECRET.length < 32) throw new Error("RATE_LIMIT_SECRET is not configured");
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const ipHash = await digest(ip + ":" + env.RATE_LIMIT_SECRET);
   const now = Math.floor(Date.now() / 1000), windowStart = Math.floor(now / 900) * 900;
@@ -76,7 +77,7 @@ async function handle(request, env) {
     if (!await rateLimit(request, env, "login", 10)) return json({ error: "Zbyt wiele prób. Spróbuj ponownie za 15 minut." }, 429, headers);
     let body; try { body = await request.json(); } catch { return json({ error: "Nieprawidłowe dane." }, 400, headers); }
     const user = await env.DB.prepare("SELECT id,username,password_salt,password_hash,password_iterations FROM users WHERE username_norm=?").bind(normalizeNick(body.username)).first();
-    if (!user || typeof body.password !== "string") return json({error:"Nieprawidłowy nick lub hasło."},401,headers);
+    if (!user || !validPassword(body.password)) return json({error:"Nieprawidłowy nick lub hasło."},401,headers);
     const candidate = await passwordHash(body.password, decodeB64(user.password_salt), user.password_iterations);
     if (candidate !== user.password_hash) return json({error:"Nieprawidłowy nick lub hasło."},401,headers);
     return json({token:await issueSession(env,user.id),user:{id:user.id,username:user.username}},200,headers);
