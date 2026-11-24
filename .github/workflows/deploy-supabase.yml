@@ -1,12 +1,6 @@
 name: Deploy Literkowo Supabase API
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "supabase/functions/**"
-      - "supabase/config.toml"
-      - ".github/workflows/deploy-supabase.yml"
   workflow_dispatch:
 
 permissions:
