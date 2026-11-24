@@ -59,15 +59,38 @@ def phrases_for(data):
     for letter in data["alphabet"]:
         phrases.add(f"Litera {letter}")
         template = data["templates"][letter]
-        steps = []
-        for index, stroke in enumerate(template):
-            curved = len(stroke) > 4
-            closed = math.hypot(stroke[0][0] - stroke[-1][0], stroke[0][1] - stroke[-1][1]) < .12
-            motion = ("płynnym łukiem " if curved else "po obwodzie " if closed else "")
-            steps.append(
-                f"Ruch {index + 1}: zacznij {position(stroke[0])}, prowadź palec "
-                f"{motion}{direction(stroke)} i zakończ w oznaczonym miejscu."
-            )
+        custom_steps = {
+            "A": [
+                "Etap 1: zacznij w lewym dolnym rogu. Jednym ciągłym ruchem poprowadź palec do góry, do szczytu, a następnie w dół na prawą stronę. Nie odrywaj palca na szczycie.",
+                "Etap 2: oderwij palec i narysuj poziomą kreskę od lewej do prawej.",
+            ],
+            "Ą": [
+                "Etap 1: jednym ruchem narysuj obie ukośne nogi: od lewego dołu przez szczyt do prawego dołu.",
+                "Etap 2: narysuj poziomą kreskę w środku.",
+                "Etap 3: dodaj ogonek przy prawej dolnej części litery.",
+            ],
+            "M": [
+                "Etap 1: zacznij u góry po lewej, zejdź w dół, unieś linię do środkowego dołka, poprowadź ją do góry po prawej i zejdź na dół. To jeden ciągły ruch.",
+            ],
+            "N": [
+                "Etap 1: zacznij u góry po lewej, zejdź w dół, poprowadź ukośną linię do góry po prawej i zejdź na dół. Nie odrywaj palca.",
+            ],
+            "Ń": [
+                "Etap 1: napisz literę N jednym ciągłym ruchem.",
+                "Etap 2: dodaj kreskę nad literą.",
+            ],
+        }
+        steps = custom_steps.get(letter)
+        if steps is None:
+            steps = []
+            for index, stroke in enumerate(template):
+                curved = len(stroke) > 4
+                closed = math.hypot(stroke[0][0] - stroke[-1][0], stroke[0][1] - stroke[-1][1]) < .12
+                motion = ("płynnym łukiem " if curved else "po obwodzie " if closed else "")
+                steps.append(
+                    f"Ruch {index + 1}: zacznij {position(stroke[0])}, prowadź palec "
+                    f"{motion}{direction(stroke)} i zakończ w oznaczonym miejscu."
+                )
         guide = ". ".join(steps)
         phrases.add(f"Jak napisać literę {letter}. {guide}")
 
