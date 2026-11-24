@@ -1,0 +1,4 @@
+project_id = "literkowo"
+
+[functions.literkowo-api]
+verify_jwt = false
