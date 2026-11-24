@@ -85,6 +85,15 @@ def main():
             stroke_count += 1
             dot_count += len(actual_dots)
 
+    # Dots above lowercase i, j and ż are press marks, never short horizontal traces.
+    for letter in ("i", "j", "ż"):
+        source_dot = path_letters[letter]["strokes"][-1]
+        traced_dot = point_letters[letter]["strokes"][-1]
+        if len(source_dot.get("points", [])) != 1:
+            fail(f"{letter}: lowercase dot must be a single press point")
+        if len(traced_dot.get("dots", [])) != 1 or not traced_dot.get("press"):
+            fail(f"{letter}: lowercase dot must render as a single press point")
+
     # Guard the specific connection that previously left visible gaps in E.
     e_strokes = path_letters["E"]["strokes"]
     if len(e_strokes) != 4:
