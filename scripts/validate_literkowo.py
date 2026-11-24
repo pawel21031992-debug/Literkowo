@@ -71,7 +71,10 @@ def main():
             expected_dots, expected_closed = expected_stroke(source, spacing)
             actual_dots = numbered.get("dots", [])
             finite_points(actual_dots, context + " numbered")
-            if actual_dots != expected_dots:
+            if len(actual_dots) != len(expected_dots) or any(
+                distance(actual, expected) > 1e-5
+                for actual, expected in zip(actual_dots, expected_dots)
+            ):
                 fail(f"{context}: numbered dots are out of sync with the source path")
             if numbered.get("press") is not (len(expected_dots) == 1):
                 fail(f"{context}: incorrect press-point flag")
