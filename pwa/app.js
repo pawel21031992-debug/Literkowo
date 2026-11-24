@@ -161,7 +161,7 @@ async function accountApi(path,options={}){
  if(!API_BASE)throw new Error('Backend kont nie został jeszcze wdrożony.');
  const headers={'content-type':'application/json',...(options.headers||{})};
  if(accountToken)headers.Authorization='Bearer '+accountToken;
- const response=await fetch(API_BASE.replace(/\\/$/,'')+path,{...options,headers,credentials:'omit',cache:'no-store'});
+ const response=await fetch(API_BASE.replace(/\/+$/,'')+path,{...options,headers,credentials:'omit',cache:'no-store'});
  let data={};try{data=await response.json()}catch{}
  if(!response.ok)throw new Error(data.error||'Błąd połączenia z serwerem.');
  return data;
