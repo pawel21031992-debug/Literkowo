@@ -506,8 +506,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=32'),
-   fetch('./letter-points.json?v=32')
+   fetch('./letter-paths.json?v=33'),
+   fetch('./letter-points.json?v=33')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
