@@ -1,0 +1,11 @@
+name = "literkowo-api"
+main = "worker.js"
+compatibility_date = "2026-11-24"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "literkowo"
+database_id = "UZUPELNI_ID_BAZY_D1"
+
+[vars]
+ALLOWED_ORIGIN = "https://pawel21031992-debug.github.io"
