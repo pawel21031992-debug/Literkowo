@@ -25,7 +25,7 @@ def sample_path(points, spacing):
     intervals = max(1, math.ceil(total / spacing))
     targets = [total * index / intervals for index in range(intervals + 1)]
 
-    result = []
+    candidates = []
     segment = 1
     for target in targets:
         while segment < len(lengths) - 1 and lengths[segment] < target:
@@ -33,10 +33,24 @@ def sample_path(points, spacing):
         span = lengths[segment] - lengths[segment - 1]
         fraction = (target - lengths[segment - 1]) / span if span > 1e-9 else 0.0
         a, b = points[segment - 1], points[segment]
-        result.append([
-            round(a[0] + (b[0] - a[0]) * fraction, 5),
-            round(a[1] + (b[1] - a[1]) * fraction, 5),
+        candidates.append([
+            a[0] + (b[0] - a[0]) * fraction,
+            a[1] + (b[1] - a[1]) * fraction,
         ])
+
+    # Sharp corners can bring two consecutive samples too close on screen.
+    # Skip such a sample, but always preserve the exact start and end.
+    result = [candidates[0]]
+    minimum_gap = spacing * 0.80
+    for candidate in candidates[1:-1]:
+        if distance(result[-1], candidate) >= minimum_gap:
+            result.append(candidate)
+    endpoint = candidates[-1]
+    if len(result) > 1 and distance(result[-1], endpoint) < minimum_gap:
+        result[-1] = endpoint
+    else:
+        result.append(endpoint)
+    result = [[round(p[0], 5), round(p[1], 5)] for p in result]
     return result
 
 
