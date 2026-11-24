@@ -20,7 +20,17 @@ def sample_path(points, spacing):
 
     total = lengths[-1]
     if total <= 1e-9:
-        return [points[0], points[-1]]
+        return [[round(points[0][0], 5), round(points[0][1], 5)]]
+
+    # A tiny closed loop used for a diacritic dot should be a press point,
+    # not two overlapping endpoints that look like a broken tracing path.
+    if total <= spacing * 2.5 and distance(points[0], points[-1]) < 1e-4:
+        ring = points[:-1] if len(points) > 2 else points
+        center = [
+            sum(p[0] for p in ring) / len(ring),
+            sum(p[1] for p in ring) / len(ring),
+        ]
+        return [[round(center[0], 5), round(center[1], 5)]]
 
     intervals = max(1, math.ceil(total / spacing))
     targets = [total * index / intervals for index in range(intervals + 1)]
@@ -69,7 +79,7 @@ def main():
     for letter, model in source["letters"].items():
         letters[letter] = {
             "strokes": [
-                {"dots": sample_path(stroke["points"], args.spacing)}
+                {"dots": sample_path(stroke["points"], args.spacing),\n                    "press": len(sample_path(stroke["points"], args.spacing)) == 1}
                 for stroke in model["strokes"]
             ]
         }
