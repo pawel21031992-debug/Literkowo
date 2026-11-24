@@ -8,6 +8,9 @@ function templateFor(letter){
  const model=LETTER_POINTS?.letters?.[letter];
  return model ? model.strokes.map(s=>s.dots) : [];
 }
+function isPressPoint(letter,index){
+ return !!LETTER_POINTS?.letters?.[letter]?.strokes?.[index]?.press;
+}
 function letterTransform(letter,width,height){
  const model=LETTER_PATHS?.letters?.[letter];
  if(!model || !width || !height) return null;
@@ -134,7 +137,7 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.');
+ const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.');
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
@@ -176,20 +179,22 @@ function draw(){
  const template=templateFor(state.letter);
  const rendered=template.map((stroke,i)=>strokePath(state.letter,i,stroke).map(p=>({x:p.x*rect.width,y:p.y*rect.height})));
  rendered.forEach((points,i)=>{
-  if(points.length<2)return;
+  if(points.length<1)return;
   const completed=i<state.strokes.length;
   const active=i===state.strokes.length;
 
   // Linia pomocnicza jest tylko tłem dla punktów, nie zastępuje ich numeracji.
-  ctx.beginPath();
-  points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  ctx.setLineDash([2,6]);
-  ctx.strokeStyle=completed?'rgba(42,150,105,.34)':active?'rgba(89,84,166,.34)':'rgba(89,84,166,.18)';
-  ctx.lineWidth=2;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  ctx.stroke();
-  ctx.setLineDash([]);
+  if(points.length>1){
+   ctx.beginPath();
+   points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+   ctx.setLineDash([2,6]);
+   ctx.strokeStyle=completed?'rgba(42,150,105,.34)':active?'rgba(89,84,166,.34)':'rgba(89,84,166,.18)';
+   ctx.lineWidth=2;
+   ctx.lineCap='round';
+   ctx.lineJoin='round';
+   ctx.stroke();
+   ctx.setLineDash([]);
+  }
 
   points.forEach((p,j)=>{
    const isStart=j===0;
@@ -302,9 +307,14 @@ function expectedDots(letter,index){
  return strokePath(letter,index,stroke).map(p=>({x:p.x*state.size.w,y:p.y*state.size.h}));
 }
 function strokeScore(user,expected){
+ const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
+ if(expected.length===1){
+  const nearest=user.reduce((best,p)=>Math.min(best,dist(p,expected[0])),Infinity);
+  const pass=nearest<=tolerance;
+  return {pass,coverage:pass?1:0,matched:pass?1:0,total:1,average:nearest};
+ }
  if(user.length<2||expected.length<2)return {pass:false,coverage:0,matched:0,total:expected.length};
  const trace=resampleBySpacing(user,4);
- const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
  const startDistance=dist(trace[0],expected[0]);
  const endDistance=dist(trace[trace.length-1],expected[expected.length-1]);
  if(startDistance>tolerance*1.35||endDistance>tolerance*1.35)
@@ -339,7 +349,7 @@ function evaluate(){
  const expected=expectedDots(state.letter,index);
  const result=strokeScore(state.strokes[index],expected);
  if(!result.pass){
-  rejectStroke('Nie połączono wystarczającej liczby punktów ('+result.matched+'/'+result.total+'). Zacznij w punkcie 1 i prowadź palec po kolei.');
+  rejectStroke(result.total===1?'Nie trafiono w punkt. Dotknij pomarańczowego punktu 1.':'Nie połączono wystarczającej liczby punktów ('+result.matched+'/'+result.total+'). Zacznij w punkcie 1 i prowadź palec po kolei.');
   return;
  }
  if(count<template.length){
@@ -386,7 +396,7 @@ async function initializeLetterData(){
   const missing=DATA.alphabet.filter(ch=>{
    const paths=pathData.letters?.[ch]?.strokes||[];
    const dots=pointData.letters?.[ch]?.strokes||[];
-   return !paths.length||paths.length!==dots.length||dots.some(s=>!Array.isArray(s.dots)||s.dots.length<2);
+   return !paths.length||paths.length!==dots.length||dots.some(s=>!Array.isArray(s.dots)||s.dots.length<(s.press?1:2));
   });
   if(missing.length)throw new Error('Niekompletne opunktowanie liter: '+missing.join(', '));
   LETTER_PATHS=pathData;
