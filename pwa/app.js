@@ -326,6 +326,8 @@ async function initializeLetterData(){
   if(missing.length)throw new Error('Brak wzorów: '+missing.join(', '));
   LETTER_PATHS=dataset;
   renderHome();
+  const requested=new URLSearchParams(window.location.search).get('letter');
+  if(requested&&DATA.alphabet.includes(requested.toUpperCase()))openLetter(requested.toUpperCase());
  }catch(error){
   console.error('Nie udało się wczytać wzorów liter',error);
   renderHome();
