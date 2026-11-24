@@ -149,13 +149,13 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i prowadź palec przez kolejne ponumerowane punkty aż do ostatniego.'+(isClosedStroke(ch,i)?' Na końcu wróć do punktu 1, aby zamknąć kształt.':''));
+ const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Dotknij pomarańczowego znacznika.':'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.'+(isClosedStroke(ch,i)?' Na końcu wróć do punktu 1, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
- $('#feedback').textContent='Zacznij w pomarańczowym punkcie 1. Prowadź palec kolejno przez ponumerowane punkty. Trafione punkty zmieniają kolor na zielony.';
+ $('#feedback').textContent='Zacznij przy pomarańczowym znaczniku. Podążaj za strzałkami. Po ukończeniu fragmentu podświetli się następny.';
  $('#save').disabled=true;draw();
  speak('Litera '+ch);
 }
@@ -165,34 +165,55 @@ function drawDirectionArrow(ctx,points,active,isClosed){
  if(!active||points.length<2)return;
  const path=points.slice();
  if(isClosed)path.push(points[0]);
- let total=0;
  const lengths=[0];
- for(let i=1;i<path.length;i++){
-  total+=dist(path[i-1],path[i]);
-  lengths.push(total);
- }
+ for(let i=1;i<path.length;i++)lengths.push(lengths[i-1]+dist(path[i-1],path[i]));
+ const total=lengths.at(-1);
  if(total<24)return;
- const target=total*.56;
- let segment=1;
- while(segment<lengths.length-1&&lengths[segment]<target)segment++;
- const span=Math.max(.001,lengths[segment]-lengths[segment-1]);
- const t=Math.max(0,Math.min(1,(target-lengths[segment-1])/span));
- const a=path[segment-1],b=path[segment];
- const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
- const angle=Math.atan2(b.y-a.y,b.x-a.x);
+ // Kilka dużych grotów pokazuje kierunek bez konieczności odczytywania numerów.
+ for(const fraction of [0.34,0.68]){
+  const target=total*fraction;
+  let segment=1;
+  while(segment<lengths.length-1&&lengths[segment]<target)segment++;
+  const span=Math.max(.001,lengths[segment]-lengths[segment-1]);
+  const t=Math.max(0,Math.min(1,(target-lengths[segment-1])/span));
+  const a=path[segment-1],b=path[segment];
+  const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+  const angle=Math.atan2(b.y-a.y,b.x-a.x);
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(8,0);
+  ctx.lineTo(-5,-6);
+  ctx.lineTo(-2,0);
+  ctx.lineTo(-5,6);
+  ctx.closePath();
+  ctx.fillStyle='#e87524';
+  ctx.fill();
+  ctx.restore();
+ }
+}
+function drawStartMarker(ctx,points,active,completed){
+ if(!active||!points.length)return;
+ const p=points[0],next=points[1]||points[0];
+ const angle=Math.atan2(next.y-p.y,next.x-p.x);
  ctx.save();
- ctx.translate(x,y);
+ ctx.beginPath();
+ ctx.arc(p.x,p.y,14,0,Math.PI*2);
+ ctx.fillStyle='#fff';
+ ctx.fill();
+ ctx.lineWidth=3;
+ ctx.strokeStyle='#e87524';
+ ctx.stroke();
+ ctx.translate(p.x,p.y);
  ctx.rotate(angle);
  ctx.beginPath();
- ctx.moveTo(5,0);
- ctx.lineTo(-3.5,-4);
- ctx.moveTo(5,0);
- ctx.lineTo(-3.5,4);
- ctx.strokeStyle='#e87524';
- ctx.lineWidth=2.4;
- ctx.lineCap='round';
- ctx.lineJoin='round';
- ctx.stroke();
+ ctx.moveTo(6,0);
+ ctx.lineTo(-4,-5);
+ ctx.lineTo(-4,5);
+ ctx.closePath();
+ ctx.fillStyle='#e87524';
+ ctx.fill();
  ctx.restore();
 }
 
@@ -212,7 +233,7 @@ function draw(){
  const transform=letterTransform(state.letter,rect.width,rect.height);
  if(!model||!transform||!LETTER_POINTS?.letters?.[state.letter])return;
 
- // Delikatny obrys pozwala rozpoznać literę. Główną instrukcją są numerowane punkty.
+ // Delikatny obrys pozwala rozpoznać literę. Kierunek pokazują duże strzałki.
  if(model.outline && typeof Path2D!=='undefined'){
   try{
    ctx.save();
@@ -231,7 +252,7 @@ function draw(){
   const completed=i<state.strokes.length;
   const active=i===state.strokes.length;
 
-  // Linia pomocnicza jest tylko tłem dla punktów, nie zastępuje ich numeracji.
+  // Aktywny fragment jest wyraźny, pozostałe fragmenty są tylko podpowiedzią kształtu.
   if(points.length>1){
    ctx.beginPath();
    points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
@@ -246,54 +267,8 @@ function draw(){
   }
   drawDirectionArrow(ctx,points,active,isClosedStroke(state.letter,i));
 
-  points.forEach((p,j)=>{
-   const isStart=j===0;
-   const isEnd=j===points.length-1;
-   let labelX=p.x,labelY=p.y;
-   let radius=isStart?10.5:isEnd?8.5:7.8;
-
-   if(isStart){
-    const duplicate=rendered.slice(0,i).some(path=>path.length&&dist(path[0],p)<24);
-    if(duplicate){
-     const side=i%2===0?-1:1;
-     labelX+=side*18;
-     labelY-=13;
-     ctx.beginPath();
-     ctx.moveTo(p.x,p.y);
-     ctx.lineTo(labelX,labelY);
-     ctx.strokeStyle=completed?'#29966a':'#f28a35';
-     ctx.lineWidth=1.5;
-     ctx.stroke();
-     ctx.beginPath();
-     ctx.arc(p.x,p.y,4.5,0,Math.PI*2);
-     ctx.fillStyle=completed?'#29966a':'#f28a35';
-     ctx.fill();
-    }
-   }
-
-   ctx.beginPath();
-   ctx.arc(labelX,labelY,radius,0,Math.PI*2);
-   const reached=completed||(active&&j<state.dotProgress);
-   if(reached){
-    ctx.fillStyle='#29966a';
-    ctx.strokeStyle='#237f5b';
-   }else if(isStart){
-    ctx.fillStyle='#f28a35';
-    ctx.strokeStyle='#d87522';
-   }else{
-    ctx.fillStyle=isEnd?'#eeeaff':'#fff';
-    ctx.strokeStyle='#5954a6';
-   }
-   ctx.lineWidth=isStart?1.5:1.8;
-   ctx.fill();
-   ctx.stroke();
-
-   ctx.fillStyle=completed||isStart?'#fff':'#514c9a';
-   ctx.font=(isStart?'bold 10px':String(j+1).length>1?'bold 6.5px':'bold 8px')+' system-ui';
-   ctx.textAlign='center';
-   ctx.textBaseline='middle';
-   ctx.fillText(String(j+1),labelX,labelY+.25);
-  });
+  // Początek pokazujemy tylko dla aktualnie ćwiczonego fragmentu.
+  drawStartMarker(ctx,points,active,completed);
  });
 
  // Ślad dziecka jest rysowany nad punktami.
@@ -426,11 +401,11 @@ function evaluate(){
  const expected=expectedDots(state.letter,index);
  const result=strokeScore(state.strokes[index],expected);
  if(!result.pass){
-  rejectStroke(result.total===1?'Nie trafiono w punkt. Dotknij pomarańczowego punktu 1.':'Nie połączono wystarczającej liczby punktów ('+result.matched+'/'+result.total+'). Zacznij w punkcie 1 i prowadź palec po kolei.');
+  rejectStroke(result.total===1?'Dotknij pomarańczowego znacznika.':'Spróbuj ponownie. Zacznij przy pomarańczowym znaczniku i podążaj za strzałkami.');
   return;
  }
  if(count<template.length){
-  $('#feedback').textContent='Dobrze! Ruch '+count+' z '+template.length+' ukończony. Teraz kolejny zestaw punktów.';
+  $('#feedback').textContent='Dobrze! Teraz wykonaj kolejny fragment litery.';
   return;
  }
  $('#feedback').textContent='Świetnie! Wszystkie punkty zostały połączone we właściwej kolejności.';
@@ -464,8 +439,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=29'),
-   fetch('./letter-points.json?v=29')
+   fetch('./letter-paths.json?v=30'),
+   fetch('./letter-points.json?v=30')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
