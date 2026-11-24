@@ -114,6 +114,11 @@ function openLetter(ch){
  $('#guideList').innerHTML='';
  const template=templateFor(ch);
  $('#guideList').hidden=state.difficulty==='memory';
+ $('#guideHint').textContent=state.difficulty==='guided'
+  ?'Pomarańczowy znacznik pokazuje, gdzie zacząć. Strzałki wskazują kierunek prowadzenia palca.'
+  :state.difficulty==='outline'
+   ?'Korzystaj z delikatnego konturu i śladu litery. Samodzielnie wybierz miejsce rozpoczęcia i kierunek.'
+   :'Na ekranie nie ma wzoru. Spróbuj napisać literę z pamięci.';
  const guideOverrides={
   A:[
    'Ruch 1: zacznij na szczycie i poprowadź ukośną kreskę w dół po lewej stronie.',
