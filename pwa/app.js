@@ -289,7 +289,7 @@ function evaluate(){
  if(index<0)return;
  const score=strokeScore(state.strokes[index],t[index]);
  if(!Number.isFinite(score)||score>.145){rejectStroke('Kształt tego ruchu wyraźnie odbiega od wzoru. Spróbuj jeszcze raz, prowadząc linię po właściwym kształcie.');return}
- if(count<t.length){const next={A:'Dobrze! Teraz oderwij palec i narysuj poziomą kreskę od lewej do prawej.',Ą:count===1?'Dobrze! Teraz narysuj poziomą kreskę w środku.':'Dobrze! Teraz dodaj ogonek po prawej stronie.',Ń:'Dobrze! Teraz dodaj kreskę nad literą.'};$('#feedback').textContent=next[state.letter]||('Dobrze! Wykonano '+count+' z '+t.length+' ruchów. Teraz kolejny ruch.');return}
+ if(count<t.length){$('#feedback').textContent='Dobrze! Teraz wykonaj ruch '+(count+1)+' z '+t.length+', zgodnie ze strzałką.';return}
  $('#feedback').textContent='Świetnie! Wszystkie ruchy pasują do wzoru.';$('#save').disabled=false;
 }
 function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
