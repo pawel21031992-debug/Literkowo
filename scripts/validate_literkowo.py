@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Check that all Polish tracing paths and numbered dots stay in sync."""
+import json
+import math
+from pathlib import Path
+
+from generate_letter_points import distance, sample_path
+
+ROOT = Path(__file__).resolve().parents[1]
+POLISH_ALPHABET = list("AĄBCĆDEĘFGHIJKLŁMNŃOÓPRSŚTUWYZŹŻ")
+
+
+def fail(message):
+    raise SystemExit(f"ERROR: {message}")
+
+
+def finite_points(points, context):
+    for index, point in enumerate(points):
+        if not isinstance(point, list) or len(point) != 2:
+            fail(f"{context}: point {index} must contain x and y")
+        if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in point):
+            fail(f"{context}: point {index} contains a non-finite coordinate")
+
+
+def expected_stroke(stroke, spacing):
+    source = stroke.get("points", [])
+    if len(source) < 2:
+        fail("Every source stroke must have at least two path coordinates")
+    total = sum(distance(source[index - 1], source[index]) for index in range(1, len(source)))
+    closed = total > spacing * 2.5 and distance(source[0], source[-1]) <= spacing * 0.5
+    dots = sample_path(source, spacing)
+    if closed and len(dots) > 2 and distance(dots[0], dots[-1]) <= spacing * 0.5:
+        dots.pop()
+    return dots, closed
+
+
+def main():
+    paths = json.loads((ROOT / "pwa/letter-paths.json").read_text(encoding="utf-8"))
+    points = json.loads((ROOT / "pwa/letter-points.json").read_text(encoding="utf-8"))
+
+    if points.get("format") != "literkowo-letter-points/1":
+        fail("Unsupported letter-points format")
+    if points.get("spacing", 0) <= 0:
+        fail("Point spacing must be greater than zero")
+
+    path_letters = paths.get("letters", {})
+    point_letters = points.get("letters", {})
+    expected_keys = set(POLISH_ALPHABET)
+    if set(path_letters) != expected_keys:
+        fail("letter-paths.json does not contain exactly the 32 Polish letters")
+    if set(point_letters) != expected_keys:
+        fail("letter-points.json does not contain exactly the 32 Polish letters")
+
+    spacing = points["spacing"]
+    stroke_count = 0
+    dot_count = 0
+
+    for letter in POLISH_ALPHABET:
+        model = path_letters[letter]
+        source_strokes = model.get("strokes", [])
+        numbered_strokes = point_letters[letter].get("strokes", [])
+        if not source_strokes or len(source_strokes) != len(numbered_strokes):
+            fail(f"{letter}: source and numbered stroke counts differ")
+
+        for index, (source, numbered) in enumerate(zip(source_strokes, numbered_strokes), start=1):
+            context = f"{letter}, stroke {index}"
+            finite_points(source.get("points", []), context + " source")
+            expected_dots, expected_closed = expected_stroke(source, spacing)
+            actual_dots = numbered.get("dots", [])
+            finite_points(actual_dots, context + " numbered")
+            if actual_dots != expected_dots:
+                fail(f"{context}: numbered dots are out of sync with the source path")
+            if numbered.get("press") is not (len(expected_dots) == 1):
+                fail(f"{context}: incorrect press-point flag")
+            if numbered.get("closed") is not expected_closed:
+                fail(f"{context}: incorrect closed-path flag")
+            if len(actual_dots) < 1:
+                fail(f"{context}: empty numbered path")
+            stroke_count += 1
+            dot_count += len(actual_dots)
+
+    # Guard the specific connection that previously left visible gaps in E.
+    e_strokes = path_letters["E"]["strokes"]
+    if len(e_strokes) != 4:
+        fail("E must contain one vertical and three horizontal strokes")
+    stem = e_strokes[0]["points"]
+    stem_x = stem[0][0]
+    stem_min_y = min(point[1] for point in stem)
+    stem_max_y = max(point[1] for point in stem)
+    if any(abs(point[0] - stem_x) > 1e-6 for point in stem):
+        fail("E: the main stem must be vertical")
+    for index, stroke in enumerate(e_strokes[1:], start=2):
+        start = stroke["points"][0]
+        if abs(start[0] - stem_x) > 1e-6 or not stem_min_y <= start[1] <= stem_max_y:
+            fail(f"E: horizontal stroke {index} does not meet the vertical stem")
+        dot_start = point_letters["E"]["strokes"][index - 1]["dots"][0]
+        if abs(dot_start[0] - stem_x) > 1e-6:
+            fail(f"E: numbered horizontal stroke {index} does not start on the stem")
+
+    print(f"OK: {len(POLISH_ALPHABET)} letters, {stroke_count} strokes, {dot_count} numbered dots")
+    print("OK: generator parity and E stroke connections")
+
+
+if __name__ == "__main__":
+    main()

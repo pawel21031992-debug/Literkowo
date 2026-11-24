@@ -151,6 +151,42 @@ function openLetter(ch){
  speak('Litera '+ch);
 }
 function fillChips(selector,items,isWord=false){const el=$(selector);el.innerHTML='';if(isWord){const select=$('#selectedWord');select.innerHTML='<option value="">Wybierz wyraz…</option>';items.forEach(item=>{const option=document.createElement('option');option.value=item;option.textContent=item;select.append(option)})}items.forEach(item=>{const b=document.createElement('button');b.className='chip';b.textContent=item;b.addEventListener('click',()=>{speak(item);if(isWord){$('#selectedWord').value=item;$('#markWord').hidden=false}});el.append(b)})}
+
+function drawDirectionArrow(ctx,points,active,isClosed){
+ if(!active||points.length<2)return;
+ const path=points.slice();
+ if(isClosed)path.push(points[0]);
+ let total=0;
+ const lengths=[0];
+ for(let i=1;i<path.length;i++){
+  total+=dist(path[i-1],path[i]);
+  lengths.push(total);
+ }
+ if(total<24)return;
+ const target=total*.56;
+ let segment=1;
+ while(segment<lengths.length-1&&lengths[segment]<target)segment++;
+ const span=Math.max(.001,lengths[segment]-lengths[segment-1]);
+ const t=Math.max(0,Math.min(1,(target-lengths[segment-1])/span));
+ const a=path[segment-1],b=path[segment];
+ const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+ const angle=Math.atan2(b.y-a.y,b.x-a.x);
+ ctx.save();
+ ctx.translate(x,y);
+ ctx.rotate(angle);
+ ctx.beginPath();
+ ctx.moveTo(5,0);
+ ctx.lineTo(-3.5,-4);
+ ctx.moveTo(5,0);
+ ctx.lineTo(-3.5,4);
+ ctx.strokeStyle='#e87524';
+ ctx.lineWidth=2.4;
+ ctx.lineCap='round';
+ ctx.lineJoin='round';
+ ctx.stroke();
+ ctx.restore();
+}
+
 function draw(){
  const canvas=$('#drawing');
  const rect=canvas.getBoundingClientRect();
@@ -199,6 +235,7 @@ function draw(){
    ctx.stroke();
    ctx.setLineDash([]);
   }
+  drawDirectionArrow(ctx,points,active,isClosedStroke(state.letter,i));
 
   points.forEach((p,j)=>{
    const isStart=j===0;
@@ -418,8 +455,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=27'),
-   fetch('./letter-points.json?v=27')
+   fetch('./letter-paths.json?v=28'),
+   fetch('./letter-points.json?v=28')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
