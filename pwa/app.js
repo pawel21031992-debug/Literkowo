@@ -41,17 +41,19 @@ function strokePath(letter,index,stroke){
  return points.map(p=>transform.point(p));
 }
 const $ = (s) => document.querySelector(s);
-const state = { letter: null, strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false, difficulty:load('difficulty','guided') };
+const legacyCompleted=load('completed',[]);
+const state = { letter: null, baseLetter:null, letterCase:load('letterCase','upper'), strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: legacyCompleted, completedCases:load('completedCases',legacyCompleted.map(ch=>String(ch).toUpperCase()+':upper')), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false, difficulty:load('difficulty','guided') };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
-function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
+function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.completedCases',JSON.stringify(state.completedCases));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){
- const completedCount=DATA.alphabet.filter(ch=>state.completed.includes(ch)).length;
+ const completedCount=state.completedCases.length;
+ const total=DATA.alphabet.length*2;
  const stars=Number.isFinite(state.stars)?Math.max(0,state.stars):0;
- $('#progress').textContent=completedCount+' / '+DATA.alphabet.length+' liter';
+ $('#progress').textContent=completedCount+' / '+total+' ćwiczeń';
  $('#starCount').textContent=stars+' ★';
  const bar=$('#progressBar');
  const track=document.querySelector('.progress-track');
- if(bar)bar.style.width=(completedCount/DATA.alphabet.length*100)+'%';
+ if(bar)bar.style.width=(completedCount/total*100)+'%';
  if(track)track.setAttribute('aria-valuenow',String(completedCount));
  }
 const voiceAudio=new Audio();
@@ -99,18 +101,44 @@ function setDifficulty(level){
 document.querySelectorAll('[data-difficulty]').forEach(button=>{
  button.addEventListener('click',()=>setDifficulty(button.dataset.difficulty));
 });
+function syncLetterCase(){
+ document.querySelectorAll('[data-letter-case]').forEach(button=>{
+  const selected=button.dataset.letterCase===state.letterCase;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
+ const description=$('#letterCaseDescription');
+ if(description)description.textContent=state.letterCase==='lower'?'Wybrano małe litery drukowane.':'Wybrano wielkie litery drukowane.';
+}
+function setLetterCase(letterCase){
+ if(!['upper','lower'].includes(letterCase))return;
+ state.letterCase=letterCase;
+ localStorage.setItem('literkowo.letterCase',letterCase);
+ syncLetterCase();
+ if(!$('#home').hidden)renderHome();
+}
+document.querySelectorAll('[data-letter-case]').forEach(button=>button.addEventListener('click',()=>setLetterCase(button.dataset.letterCase)));
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
  setDifficulty(state.difficulty);
- DATA.alphabet.forEach(ch=>{const b=document.createElement('button');b.className='letter-tile'+(state.completed.includes(ch)?' done':'');b.innerHTML='<span>'+ch+'</span><small>'+(state.completed.includes(ch)?'Ukończona':'Ćwicz')+'</small>';b.addEventListener('click',()=>openLetter(ch));$('#letterGrid').append(b)});
+ syncLetterCase();
+ DATA.alphabet.forEach(ch=>{
+  const display=state.letterCase==='lower'?ch.toLowerCase():ch;
+  const done=state.completedCases.includes(ch+':'+state.letterCase);
+  const b=document.createElement('button');b.className='letter-tile'+(done?' done':'');
+  b.innerHTML='<span>'+display+'</span><small>'+(done?'Ukończona':'Ćwicz')+'</small>';
+  b.addEventListener('click',()=>openLetter(ch));$('#letterGrid').append(b);
+ });
  renderStats();
 }
 function openLetter(ch){
- if(!LETTER_PATHS?.letters?.[ch]||!LETTER_POINTS?.letters?.[ch]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
- state.letter=ch;state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;
+ const base=String(ch).toUpperCase();
+ const display=state.letterCase==='lower'?base.toLowerCase():base;
+ if(!LETTER_PATHS?.letters?.[display]||!LETTER_POINTS?.letters?.[display]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
+ state.baseLetter=base;state.letter=display;state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;
  $('#home').hidden=true;$('#practice').hidden=false;
- $('#letterTitle').textContent=ch+'  '+ch.toLowerCase();
- $('#example').textContent='Przykładowe słowo: '+(DATA.examples[ch]||ch.toLowerCase());
+ $('#letterTitle').textContent=display;
+ $('#example').textContent='Przykładowe słowo: '+(DATA.examples[base]||base.toLowerCase());
  $('#guideList').innerHTML='';
  const template=templateFor(ch);
  $('#guideList').hidden=state.difficulty==='memory';
@@ -177,11 +205,11 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Dotknij pomarańczowego znacznika.':'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.'+(isClosedStroke(ch,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
+ const steps=(state.letterCase==='upper'?guideOverrides[base]:null)||template.map((stroke,i)=>isPressPoint(display,i)?'Dotknij pomarańczowego znacznika.':'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.'+(isClosedStroke(display,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^Ruch [0-9]+: /,i===0?'Najpierw: ':'Następnie: ');$('#guideList').append(li)});
- const vowel='AĄEĘIOÓUY'.includes(ch);
- const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
- const wordList=DATA.words[ch]||[DATA.examples[ch]];
+ const vowel='AĄEĘIOÓUY'.includes(base);
+ const syllables=vowel?[display.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>display.toLowerCase()+x);
+ const wordList=DATA.words[base]||[DATA.examples[base]];
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
  $('#feedback').textContent=state.difficulty==='guided'
   ?'Zacznij przy pomarańczowym znaczniku. Podążaj za strzałkami. Po ukończeniu fragmentu podświetli się następny.'
@@ -189,7 +217,7 @@ function openLetter(ch){
    ?'Napisz literę, korzystając z konturu. Samodzielnie wybierz miejsce rozpoczęcia i kierunek.'
    :'Napisz literę z pamięci. Powodzenia!';
  $('#save').disabled=true;draw();
- speak('Litera '+ch);
+ speak('Litera '+display);
 }
 function fillChips(selector,items,isWord=false){const el=$(selector);el.innerHTML='';if(isWord){const select=$('#selectedWord');select.innerHTML='<option value="">Wybierz wyraz…</option>';items.forEach(item=>{const option=document.createElement('option');option.value=item;option.textContent=item;select.append(option)})}items.forEach(item=>{const b=document.createElement('button');b.className='chip';b.textContent=item;b.addEventListener('click',()=>{speak(item);if(isWord){$('#selectedWord').value=item;$('#markWord').hidden=false}});el.append(b)})}
 
@@ -448,7 +476,12 @@ function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=
 $('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];state.dotProgress=0;$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 function saveCurrentLetter(){
   if($('#save').disabled)return false;
-  if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}
+  const completionKey=state.baseLetter+':'+state.letterCase;
+  if(!state.completedCases.includes(completionKey)){
+   state.completedCases.push(completionKey);
+   if(state.letterCase==='upper'&&!state.completed.includes(state.baseLetter))state.completed.push(state.baseLetter);
+   state.stars++;
+  }
   state.saved=true;persist();$('#feedback').textContent='Ćwiczenie zapisane. Brawo!';$('#save').disabled=true;
   return true;
  }
@@ -457,14 +490,14 @@ function saveCurrentLetter(){
   // Jeżeli wszystkie ruchy zostały poprawnie wykonane, zapisz literę automatycznie.
   // W przeciwnym razie przejdź dalej bez zaliczania jej — to bezpieczne pominięcie.
   saveCurrentLetter();
-  const index=DATA.alphabet.indexOf(state.letter);
+  const index=DATA.alphabet.indexOf(state.baseLetter);
   if(index>=0&&index<DATA.alphabet.length-1)openLetter(DATA.alphabet[index+1]);
   else renderHome();
  });
 $('#speakLetter').addEventListener('click',()=>speak('Litera '+(state.letter||'')));
 $('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
 $('#back').addEventListener('click',renderHome);
-$('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
+$('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.completedCases=[];state.words=[];state.stars=0;persist();renderHome()}});
 $('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
 $('#markWord').addEventListener('click',()=>{const w=$('#selectedWord').value;if(w&&!state.words.includes(w)){state.words.push(w);state.stars++;persist()}$('#markWord').hidden=true;$('#feedback').textContent='Brawo! Wyraz zapisany.'});
 window.addEventListener('resize',()=>{if(state.letter)draw()});
@@ -472,17 +505,18 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=31'),
-   fetch('./letter-points.json?v=31')
+   fetch('./letter-paths.json?v=32'),
+   fetch('./letter-points.json?v=32')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
   const pointData=await pointResponse.json();
-  const missing=DATA.alphabet.filter(ch=>{
-   const paths=pathData.letters?.[ch]?.strokes||[];
-   const dots=pointData.letters?.[ch]?.strokes||[];
+  const missing=DATA.alphabet.flatMap(ch=>['upper','lower'].filter(letterCase=>{
+   const key=letterCase==='lower'?ch.toLowerCase():ch;
+   const paths=pathData.letters?.[key]?.strokes||[];
+   const dots=pointData.letters?.[key]?.strokes||[];
    return !paths.length||paths.length!==dots.length||dots.some(s=>!Array.isArray(s.dots)||s.dots.length<(s.press?1:2));
-  });
+  }).map(letterCase=>ch+':'+letterCase));
   if(missing.length)throw new Error('Niekompletne opunktowanie liter: '+missing.join(', '));
   LETTER_PATHS=pathData;
   LETTER_POINTS=pointData;
