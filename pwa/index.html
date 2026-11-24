@@ -5,10 +5,10 @@
 <meta name="theme-color" content="#f6f5ff"><meta name="description" content="Literkowo – nauka pisania polskich liter.">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./styles.css?v=31"><title>Literkowo</title>
+<link rel="stylesheet" href="./styles.css?v=32"><title>Literkowo</title>
 </head>
 <body>
-<header class="topbar"><div class="brand"><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1><p class="author-signature">Autor: Paweł Stefański</p></div><div class="stats" aria-label="Twoje postępy"><strong id="starCount" aria-label="Zdobyte gwiazdki">0 ★</strong><small id="progress">0 / 32 liter</small><div class="progress-track" role="progressbar" aria-label="Ukończone litery" aria-valuemin="0" aria-valuemax="32" aria-valuenow="0"><span id="progressBar"></span></div></div></header>
+<header class="topbar"><div class="brand"><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1><p class="author-signature">Autor: Paweł Stefański</p></div><div class="stats" aria-label="Twoje postępy"><strong id="starCount" aria-label="Zdobyte gwiazdki">0 ★</strong><small id="progress">0 / 64 ćwiczeń</small><div class="progress-track" role="progressbar" aria-label="Ukończone ćwiczenia" aria-valuemin="0" aria-valuemax="64" aria-valuenow="0"><span id="progressBar"></span></div></div></header>
 <main>
 <section id="home"><div class="intro"><h2>Wybierz poziom trudności</h2><p>Poziom możesz zmienić w każdej chwili. Postępy liter pozostają zapisane.</p></div>
 <div class="difficulty-picker" role="group" aria-label="Poziom trudności">
@@ -17,6 +17,12 @@
 <button type="button" class="difficulty-card" data-difficulty="memory" aria-pressed="false"><strong>Zaawansowany</strong><span>Napisz literę samodzielnie, bez wzoru na ekranie.</span></button>
 </div>
 <p id="difficultyDescription" class="difficulty-description" aria-live="polite">Poziom początkujący: prowadź palec od pomarańczowego znacznika zgodnie ze strzałkami.</p>
+<div class="intro"><h2>Wybierz rodzaj liter</h2><p>Ćwicz małe lub wielkie litery drukowane.</p></div>
+<div class="case-picker" role="group" aria-label="Rodzaj liter">
+<button type="button" class="case-card selected" data-letter-case="upper" aria-pressed="true"><strong>Wielkie drukowane</strong><span>A Ą B C D…</span></button>
+<button type="button" class="case-card" data-letter-case="lower" aria-pressed="false"><strong>Małe drukowane</strong><span>a ą b c d…</span></button>
+</div>
+<p id="letterCaseDescription" class="case-description" aria-live="polite">Wybrano wielkie litery drukowane.</p>
 <div class="intro"><h2>Wybierz literę</h2><p>Ćwicz pisanie, poznawaj sylaby i słuchaj wyrazów.</p></div><div id="letterGrid" class="letter-grid"></div><button id="reset" class="text-button">Wyzeruj postępy</button></section>
 <section id="practice" hidden>
 <button id="back" class="back-button">← Wszystkie litery</button>
@@ -31,5 +37,5 @@
 </section>
 </main>
 <footer><strong>Literkowo — autor: Paweł Stefański</strong><br>Postępy zapisują się lokalnie na tym urządzeniu. Nie wymaga konta ani połączenia z serwerem.</footer>
-<script src="./app.js?v=31"></script>
+<script src="./app.js?v=32"></script>
 </body></html>
