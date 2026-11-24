@@ -5,12 +5,19 @@
 <meta name="theme-color" content="#f6f5ff"><meta name="description" content="Literkowo – nauka pisania polskich liter.">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./styles.css?v=30"><title>Literkowo</title>
+<link rel="stylesheet" href="./styles.css?v=31"><title>Literkowo</title>
 </head>
 <body>
 <header class="topbar"><div class="brand"><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1><p class="author-signature">Autor: Paweł Stefański</p></div><div class="stats" aria-label="Twoje postępy"><strong id="starCount" aria-label="Zdobyte gwiazdki">0 ★</strong><small id="progress">0 / 32 liter</small><div class="progress-track" role="progressbar" aria-label="Ukończone litery" aria-valuemin="0" aria-valuemax="32" aria-valuenow="0"><span id="progressBar"></span></div></div></header>
 <main>
-<section id="home"><div class="intro"><h2>Wybierz literę</h2><p>Ćwicz pisanie, poznawaj sylaby i słuchaj wyrazów.</p></div><div id="letterGrid" class="letter-grid"></div><button id="reset" class="text-button">Wyzeruj postępy</button></section>
+<section id="home"><div class="intro"><h2>Wybierz poziom trudności</h2><p>Poziom możesz zmienić w każdej chwili. Postępy liter pozostają zapisane.</p></div>
+<div class="difficulty-picker" role="group" aria-label="Poziom trudności">
+<button type="button" class="difficulty-card" data-difficulty="guided" aria-pressed="true"><strong>Początkujący</strong><span>Pomarańczowy start i strzałki pokazują, jak pisać.</span></button>
+<button type="button" class="difficulty-card" data-difficulty="outline" aria-pressed="false"><strong>Średni</strong><span>Widać kontur i ślad litery, ale bez strzałek.</span></button>
+<button type="button" class="difficulty-card" data-difficulty="memory" aria-pressed="false"><strong>Zaawansowany</strong><span>Napisz literę samodzielnie, bez wzoru na ekranie.</span></button>
+</div>
+<p id="difficultyDescription" class="difficulty-description" aria-live="polite">Poziom początkujący: prowadź palec od pomarańczowego znacznika zgodnie ze strzałkami.</p>
+<div class="intro"><h2>Wybierz literę</h2><p>Ćwicz pisanie, poznawaj sylaby i słuchaj wyrazów.</p></div><div id="letterGrid" class="letter-grid"></div><button id="reset" class="text-button">Wyzeruj postępy</button></section>
 <section id="practice" hidden>
 <button id="back" class="back-button">← Wszystkie litery</button>
 <div class="letter-heading"><div><p class="eyebrow">ĆWICZYMY LITERĘ</p><h2 id="letterTitle">A a</h2></div><div class="voice-actions"><button id="speakLetter" class="secondary">Posłuchaj litery</button><button id="readGuide" class="secondary">Czytaj instrukcję</button></div></div>
@@ -24,5 +31,5 @@
 </section>
 </main>
 <footer><strong>Literkowo — autor: Paweł Stefański</strong><br>Postępy zapisują się lokalnie na tym urządzeniu. Nie wymaga konta ani połączenia z serwerem.</footer>
-<script src="./app.js?v=30"></script>
+<script src="./app.js?v=31"></script>
 </body></html>
