@@ -140,7 +140,7 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i połącz kolejno wszystkie '+stroke.length+' ponumerowane punkty aż do końca ścieżki.'+(isClosedStroke(ch,i)?' Na końcu wróć do punktu 1, aby zamknąć kształt.':''));
+ const steps=guideOverrides[ch]||template.map((stroke,i)=>isPressPoint(ch,i)?'Ruch '+(i+1)+': dotknij pomarańczowego punktu 1 i oderwij palec.':'Ruch '+(i+1)+': zacznij w pomarańczowym punkcie 1 i prowadź palec przez kolejne ponumerowane punkty aż do ostatniego.'+(isClosedStroke(ch,i)?' Na końcu wróć do punktu 1, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^\s*\d+[.)]\s*/, '');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(ch);
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
