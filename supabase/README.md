@@ -1,7 +1,10 @@
-# Literkowo — backend kont w Supabase
+# Literkowo — opcjonalny backend (nieaktywny)
 
-GitHub Pages nadal hostuje aplikację PWA. Supabase zapewnia bezpłatną bazę PostgreSQL i funkcję API. Konta używają wyłącznie nicku i hasła — bez adresu e-mail i numeru telefonu.
+**Aktualna wersja aplikacji nie korzysta z kont ani z Supabase.** Postępy są przechowywane lokalnie w przeglądarce urządzenia. Nie trzeba zakładać konta ani konfigurować żadnego serwera.
 
+Poniższy kod pozostaje w repozytorium wyłącznie jako materiał do ewentualnego rozwoju synchronizacji między urządzeniami w przyszłości. Nie jest wymagany do działania PWA, a workflow wdrożeniowy uruchamia się wyłącznie ręcznie. Nie konfiguruj go na potrzeby obecnej wersji.
+
+## Dokumentacja techniczna backendu (nieaktywnego)
 ## Zasady i zabezpieczenia
 - Nick 3–20 znaków: litery A–Z, cyfry i podkreślenie.
 - Nicki są globalnie unikalne, bez rozróżniania wielkości liter. Ograniczenie UNIQUE w PostgreSQL rozstrzyga również równoczesne próby rejestracji.
@@ -31,15 +34,3 @@ Workflow `.github/workflows/deploy-supabase.yml` wdraża funkcję po zmianach w 
 
 Wymagane zmienne i sekrety pozostają w ustawieniach GitHuba. Klucz service role jest pobierany przez funkcję z wbudowanego środowiska Supabase i nigdy nie trafia do przeglądarki.
 
-## Ograniczenie odzyskiwania hasła
-Ponieważ nie zbieramy e-maila ani numeru telefonu, nie ma automatycznego resetu hasła. Użytkownik musi zachować hasło w bezpiecznym miejscu. Nie dodajemy backdoora administratora.
-
-## Endpointy
-- `POST /register` — JSON `{"username":"...","password":"..."}`
-- `POST /login` — logowanie
-- `GET /me` — bieżące konto
-- `GET /progress` i `PUT /progress` — postępy
-- `POST /logout` — unieważnienie sesji
-- `DELETE /account` — usunięcie konta
-
-Żądania po zalogowaniu używają nagłówka `Authorization: Bearer <token>`. Token w przeglądarce jest przechowywany w `sessionStorage`.
