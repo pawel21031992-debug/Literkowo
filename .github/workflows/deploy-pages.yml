@@ -48,14 +48,10 @@ jobs:
           python scripts/generate_literkowo_audio.py \
             --model ./.voice/pl_PL-gosia-medium.onnx \
             --output ./pwa/audio
-      # Unique per attempt: prevents duplicate Pages artifacts on workflow retries.
       - name: Upload PWA
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./pwa
-          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
