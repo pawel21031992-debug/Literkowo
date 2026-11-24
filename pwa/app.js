@@ -307,7 +307,17 @@ function saveCurrentLetter(){
   saveCurrentLetter();
   const index=DATA.alphabet.indexOf(state.letter);
   if(index>=0&&index<DATA.alphabet.length-1)openLetter(DATA.alphabet[index+1]);
-  else async function initializeLetterData(){
+  else renderHome();
+ });
+$('#speakLetter').addEventListener('click',()=>speak('Litera '+(state.letter||'')));
+$('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
+$('#back').addEventListener('click',renderHome);
+$('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
+$('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
+$('#markWord').addEventListener('click',()=>{const w=$('#selectedWord').value;if(w&&!state.words.includes(w)){state.words.push(w);state.stars++;persist()}$('#markWord').hidden=true;$('#feedback').textContent='Brawo! Wyraz zapisany.'});
+window.addEventListener('resize',()=>{if(state.letter)draw()});
+if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();}catch(e){console.warn('PWA update unavailable',e)}});
+async function initializeLetterData(){
  try{
   const response=await fetch('./letter-paths.json?v=21');
   if(!response.ok)throw new Error('HTTP '+response.status);
@@ -324,13 +334,3 @@ function saveCurrentLetter(){
  }
 }
 initializeLetterData();
- });
-$('#speakLetter').addEventListener('click',()=>speak('Litera '+(state.letter||'')));
-$('#readGuide').addEventListener('click',()=>speak('Jak napisać literę '+(state.letter||'')+'. '+Array.from($('#guideList').querySelectorAll('li')).map(li=>li.textContent).join('. ')));
-$('#back').addEventListener('click',renderHome);
-$('#reset').addEventListener('click',()=>{if(confirm('Czy na pewno wyzerować wszystkie postępy?')){state.completed=[];state.words=[];state.stars=0;persist();renderHome()}});
-$('#selectedWord').addEventListener('change',()=>{$('#markWord').hidden=!$('#selectedWord').value});
-$('#markWord').addEventListener('click',()=>{const w=$('#selectedWord').value;if(w&&!state.words.includes(w)){state.words.push(w);state.stars++;persist()}$('#markWord').hidden=true;$('#feedback').textContent='Brawo! Wyraz zapisany.'});
-window.addEventListener('resize',()=>{if(state.letter)draw()});
-if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await reg.update();}catch(e){console.warn('PWA update unavailable',e)}});
-renderHome();
