@@ -1,6 +1,6 @@
 # Informacje o zewnętrznych danych liter
 
-Plik `letter-paths.json` zawiera adaptację danych ścieżek pisania liter z projektu **how-to-write-letters** autorstwa Moti Sorkina:
+Pliki `letter-paths.json` oraz `letter-points.json` zawierają adaptację danych ścieżek pisania i położenia kolejnych punktów liter z projektu **how-to-write-letters** autorstwa Moti Sorkina:
 
 - Projekt źródłowy: https://github.com/motizzle/how-to-write-letters
 - Dane źródłowe: `docs/data/print.json`
