@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="./styles.css?v=14"><title>Literkowo</title>
 </head>
 <body>
-<header class="topbar"><div class="brand"><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1><p class="author-signature">Autor: Paweł Stefański</p></div><div class="stats"><small id="progress">0 / 32 liter</small></div></header>
+<header class="topbar"><div class="brand"><p class="eyebrow">NAUKA PRZEZ ZABAWĘ</p><h1>Literkowo</h1><p class="author-signature">Autor: Paweł Stefański</p></div><div class="stats"><small id="progress">0 / 32 liter</small><button id="accountOpen" class="secondary account-open">Konto</button></div></header>
 <main>
 <section id="home"><div class="intro"><h2>Wybierz literę</h2><p>Ćwicz pisanie, poznawaj sylaby i słuchaj wyrazów.</p></div><div id="letterGrid" class="letter-grid"></div><button id="reset" class="text-button">Wyzeruj postępy</button></section>
 <section id="practice" hidden>
@@ -23,6 +23,19 @@
 <p id="example" class="example"></p>
 </section>
 </main>
+<section id="accountDialog" class="account-dialog" hidden aria-modal="true" role="dialog" aria-labelledby="accountTitle">
+<div class="account-card">
+<button id="accountClose" class="account-close" aria-label="Zamknij">×</button>
+<p class="eyebrow">KONTO LITERKOWA</p><h2 id="accountTitle">Twoje konto</h2>
+<p id="accountStatus" class="account-status">Konta pozwolą zachować postępy na różnych urządzeniach.</p>
+<div id="accountForms">
+<label>Nick<input id="accountNick" autocomplete="username" minlength="3" maxlength="20" placeholder="np. Kasia" /></label>
+<label>Hasło<input id="accountPassword" type="password" autocomplete="current-password" minlength="10" maxlength="128" placeholder="Minimum 10 znaków" /></label>
+<div class="account-actions"><button id="accountLogin" class="primary">Zaloguj</button><button id="accountRegister" class="secondary">Utwórz konto</button></div>
+</div>
+<div id="accountLogged" hidden><p id="accountUser"></p><button id="accountLogout" class="secondary">Wyloguj</button><button id="accountDelete" class="danger-button">Usuń konto i dane</button></div>
+<p class="account-note">Nie podawaj imienia, nazwiska ani innych danych osobowych jako nicku. Bez adresu e-mail nie będzie automatycznego odzyskiwania hasła.</p>
+</div></section>
 <footer><strong>Literkowo — autor: Paweł Stefański</strong><br>Postępy są zapisywane lokalnie w tej przeglądarce na tym urządzeniu.</footer>
 <script src="./app.js?v=14"></script>
 </body></html>
