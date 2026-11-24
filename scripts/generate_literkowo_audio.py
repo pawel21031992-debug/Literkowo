@@ -134,14 +134,13 @@ def phrases_for(data, path_data, point_data):
                         f"Ruch {index + 1}: dotknij pomarańczowego punktu 1 i oderwij palec."
                     )
                 else:
-                    count = len(stroke["dots"])
                     ending = (
                         " Na końcu wróć do punktu 1, aby zamknąć kształt."
                         if stroke.get("closed") else ""
                     )
                     steps.append(
-                        f"Ruch {index + 1}: zacznij w pomarańczowym punkcie 1 i połącz "
-                        f"kolejno wszystkie {count} ponumerowane punkty aż do końca ścieżki."
+                        f"Ruch {index + 1}: zacznij w pomarańczowym punkcie 1 i prowadź "
+                        "palec przez kolejne ponumerowane punkty aż do ostatniego."
                         + ending
                     )
         guide = ". ".join(steps)
