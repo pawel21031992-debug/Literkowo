@@ -317,9 +317,9 @@ function draw(){
    ctx.beginPath();
    points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
    if(isClosedStroke(state.letter,i))ctx.lineTo(points[0].x,points[0].y);
-   ctx.setLineDash([2,6]);
+   ctx.setLineDash(model.handwriting?[1,5]:[2,6]);
    ctx.strokeStyle=completed?'rgba(42,150,105,.34)':active?'rgba(89,84,166,.34)':'rgba(89,84,166,.18)';
-   ctx.lineWidth=2;
+   ctx.lineWidth=model.handwriting?4:2;
    ctx.lineCap='round';
    ctx.lineJoin='round';
    ctx.stroke();
