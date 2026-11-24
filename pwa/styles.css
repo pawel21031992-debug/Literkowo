@@ -28,3 +28,11 @@
 .difficulty-description{margin:0 0 16px;padding:10px 12px;border-radius:12px;background:#f1f0ff;color:#5954a6;font-size:13px;line-height:1.45}
 .guide ul[hidden]{display:none}
 @media(max-width:520px){.difficulty-picker{grid-template-columns:1fr}.difficulty-card{min-height:76px}.difficulty-card span{font-size:13px}}
+
+/* Wybór małych i wielkich liter drukowanych */
+.case-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0}
+.case-card{display:flex;flex-direction:column;gap:7px;min-height:88px;padding:14px 12px;text-align:left;border:2px solid #e8e6f4;border-radius:16px;background:#fff;color:var(--ink);cursor:pointer}
+.case-card strong{font-size:15px;color:var(--purple)}
+.case-card span{font-size:13px;color:var(--muted)}
+.case-card.selected{border-color:var(--orange);background:#fff8f1;box-shadow:0 0 0 2px #f28a3520}
+.case-description{margin:0 0 16px;padding:9px 12px;border-radius:12px;background:#f1f0ff;color:#5954a6;font-size:13px;line-height:1.45}
