@@ -293,20 +293,45 @@ function draw(){
  const transform=letterTransform(state.letter,rect.width,rect.height);
  if(!model||!transform||!LETTER_POINTS?.letters?.[state.letter])return;
 
- // Delikatny obrys pozwala rozpoznać literę. Kierunek pokazują duże strzałki.
+ const template=templateFor(state.letter);
+ const rendered=template.map((stroke,i)=>strokePath(state.letter,i,stroke).map(p=>({x:p.x*rect.width,y:p.y*rect.height})));
+
+ // Wzór tła: pełny kontur z danych wektorowych, a dla małych liter
+ // (które mają zapisane linie prowadzące zamiast gotowego outline) sylwetka
+ // z tych samych ścieżek, z zaokrąglonymi końcami i łączeniami.
+ let outlineRendered=false;
  if(state.difficulty!=='memory' && model.outline && typeof Path2D!=='undefined'){
   try{
    ctx.save();
    ctx.translate(transform.offsetX-transform.frameX*transform.scale,transform.offsetY-transform.frameY*transform.scale);
    ctx.scale(transform.scale,transform.scale);
-   ctx.fillStyle='rgba(77,83,170,.075)';
+   ctx.fillStyle='rgba(77,83,170,.10)';
    ctx.fill(new Path2D(model.outline),'evenodd');
    ctx.restore();
+   outlineRendered=true;
   }catch(e){ctx.restore();}
  }
-
- const template=templateFor(state.letter);
- const rendered=template.map((stroke,i)=>strokePath(state.letter,i,stroke).map(p=>({x:p.x*rect.width,y:p.y*rect.height})));
+ if(state.difficulty!=='memory' && !outlineRendered && model.handwriting){
+  const silhouetteWidth=Math.max(14,transform.scale*.052);
+  ctx.save();
+  ctx.strokeStyle='rgba(77,83,170,.14)';
+  ctx.fillStyle='rgba(77,83,170,.14)';
+  ctx.lineWidth=silhouetteWidth;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  rendered.forEach(points=>{
+   if(!points.length)return;
+   ctx.beginPath();
+   if(points.length===1){
+    ctx.arc(points[0].x,points[0].y,silhouetteWidth/2,0,Math.PI*2);
+    ctx.fill();
+    return;
+   }
+   points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+   ctx.stroke();
+  });
+  ctx.restore();
+ }
  rendered.forEach((points,i)=>{
   if(points.length<1)return;
   const completed=i<state.strokes.length;
@@ -506,8 +531,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=33'),
-   fetch('./letter-points.json?v=33')
+   fetch('./letter-paths.json?v=34'),
+   fetch('./letter-points.json?v=34')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();
