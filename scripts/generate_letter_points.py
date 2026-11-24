@@ -79,8 +79,23 @@ def main():
     for letter, model in source["letters"].items():
         strokes = []
         for stroke in model["strokes"]:
-            dots = sample_path(stroke["points"], args.spacing)
-            strokes.append({"dots": dots, "press": len(dots) == 1})
+            source_points = stroke["points"]
+            source_length = sum(
+                distance(source_points[i - 1], source_points[i])
+                for i in range(1, len(source_points))
+            )
+            closed = (
+                source_length > args.spacing * 2.5
+                and distance(source_points[0], source_points[-1]) <= args.spacing * 0.5
+            )
+            dots = sample_path(source_points, args.spacing)
+            if closed and len(dots) > 2 and distance(dots[0], dots[-1]) <= args.spacing * 0.5:
+                dots.pop()
+            strokes.append({
+                "dots": dots,
+                "press": len(dots) == 1,
+                "closed": closed,
+            })
         letters[letter] = {"strokes": strokes}
 
     output = {
