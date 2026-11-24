@@ -38,7 +38,7 @@ function strokePath(letter,index,stroke){
  return points.map(p=>transform.point(p));
 }
 const $ = (s) => document.querySelector(s);
-const state = { letter: null, strokes: [], current: [], size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
+const state = { letter: null, strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
@@ -73,7 +73,7 @@ function renderHome(){
 }
 function openLetter(ch){
  if(!LETTER_PATHS?.letters?.[ch]||!LETTER_POINTS?.letters?.[ch]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
- state.letter=ch;state.strokes=[];state.current=[];state.saved=false;
+ state.letter=ch;state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;
  $('#home').hidden=true;$('#practice').hidden=false;
  $('#letterTitle').textContent=ch+'  '+ch.toLowerCase();
  $('#example').textContent='Przykładowe słowo: '+(DATA.examples[ch]||ch.toLowerCase());
@@ -223,7 +223,8 @@ function draw(){
 
    ctx.beginPath();
    ctx.arc(labelX,labelY,radius,0,Math.PI*2);
-   if(completed){
+   const reached=completed||(active&&j<state.dotProgress);
+   if(reached){
     ctx.fillStyle='#29966a';
     ctx.strokeStyle='#237f5b';
    }else if(isStart){
@@ -260,10 +261,10 @@ function draw(){
 function point(e){const r=$('#drawing').getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
 const canvas=$('#drawing');
 let activePointer=null;
-canvas.addEventListener('pointerdown',e=>{if(!state.letter||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();activePointer=e.pointerId;try{canvas.setPointerCapture(e.pointerId)}catch{}state.current=[point(e)];state.saved=false;$('#save').disabled=true;draw()},{passive:false});
-canvas.addEventListener('pointermove',e=>{if(activePointer!==e.pointerId||!state.current.length)return;e.preventDefault();state.current.push(point(e));draw()},{passive:false});
-function finishStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;if(state.current.length){state.strokes.push(state.current);state.current=[];draw();evaluate()}}
-function cancelStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;state.current=[];draw();$('#feedback').textContent='Ruch przerwany. Spróbuj ponownie.'}
+canvas.addEventListener('pointerdown',e=>{if(!state.letter||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();activePointer=e.pointerId;try{canvas.setPointerCapture(e.pointerId)}catch{}state.current=[point(e)];state.dotProgress=0;state.saved=false;$('#save').disabled=true;refreshDotProgress();draw()},{passive:false});
+canvas.addEventListener('pointermove',e=>{if(activePointer!==e.pointerId||!state.current.length)return;e.preventDefault();state.current.push(point(e));refreshDotProgress();draw()},{passive:false});
+function finishStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;if(state.current.length){state.strokes.push(state.current);state.current=[];state.dotProgress=0;draw();evaluate()}}
+function cancelStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;state.current=[];state.dotProgress=0;draw();$('#feedback').textContent='Ruch przerwany. Spróbuj ponownie.'}
 canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',cancelStroke);
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function resample(points,count=32){if(points.length<2)return points;const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths[i-1]+dist(points[i-1],points[i]));const total=lengths.at(-1);if(!total)return Array(count).fill(points[0]);const out=[];let seg=1;for(let i=0;i<count;i++){const target=total*i/(count-1);while(seg<lengths.length-1&&lengths[seg]<target)seg++;const span=Math.max(lengths[seg]-lengths[seg-1],.000001),t=Math.min(1,Math.max(0,(target-lengths[seg-1])/span));out.push({x:points[seg-1].x+(points[seg].x-points[seg-1].x)*t,y:points[seg-1].y+(points[seg].y-points[seg-1].y)*t})}return out}
@@ -305,6 +306,30 @@ function resampleBySpacing(points,spacing=4){
 function expectedDots(letter,index){
  const stroke=templateFor(letter)[index]||[];
  return strokePath(letter,index,stroke).map(p=>({x:p.x*state.size.w,y:p.y*state.size.h}));
+}
+function refreshDotProgress(){
+ if(!state.letter||!state.current.length)return;
+ const expected=expectedDots(state.letter,state.strokes.length);
+ if(!expected.length){state.dotProgress=0;return;}
+ const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
+ if(expected.length===1){
+  state.dotProgress=state.current.some(p=>dist(p,expected[0])<=tolerance)?1:0;
+  return;
+ }
+ const trace=resampleBySpacing(state.current,4);
+ let cursor=0,count=0;
+ for(const dot of expected){
+  let nearest=Infinity,nearestIndex=-1;
+  for(let i=cursor;i<trace.length;i++){
+   const d=dist(trace[i],dot);
+   if(d<nearest){nearest=d;nearestIndex=i;}
+  }
+  if(nearestIndex>=0&&nearest<=tolerance){
+   count++;
+   cursor=Math.min(trace.length-1,nearestIndex+1);
+  }else break;
+ }
+ state.dotProgress=count;
 }
 function strokeScore(user,expected){
  const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
@@ -360,7 +385,7 @@ function evaluate(){
  $('#save').disabled=false;
 }
 function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
-$('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
+$('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];state.dotProgress=0;$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 function saveCurrentLetter(){
   if($('#save').disabled)return false;
   if(!state.completed.includes(state.letter)){state.completed.push(state.letter);state.stars++}
