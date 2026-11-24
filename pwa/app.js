@@ -41,7 +41,7 @@ function strokePath(letter,index,stroke){
  return points.map(p=>transform.point(p));
 }
 const $ = (s) => document.querySelector(s);
-const state = { letter: null, strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
+const state = { letter: null, strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false, difficulty:load('difficulty','guided') };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
 function renderStats(){
@@ -78,8 +78,30 @@ function speak(t){
 }
 voiceAudio.addEventListener('ended',()=>{$('#feedback').textContent='Odtwarzanie zakończone.'});
 voiceAudio.addEventListener('error',()=>{$('#feedback').textContent='Brak pliku dźwiękowego dla tego tekstu. Odśwież aplikację i spróbuj ponownie.'});
+const DIFFICULTIES={
+ guided:{name:'Początkujący',description:'Poziom początkujący: prowadź palec od pomarańczowego znacznika zgodnie ze strzałkami.'},
+ outline:{name:'Średni',description:'Poziom średni: korzystaj z konturu i delikatnego śladu litery. Kierunek ruchu wybierasz samodzielnie.'},
+ memory:{name:'Zaawansowany',description:'Poziom zaawansowany: napisz literę z pamięci. Na polu nie ma konturu ani podpowiedzi.'}
+};
+function setDifficulty(level){
+ if(!DIFFICULTIES[level])return;
+ state.difficulty=level;
+ localStorage.setItem('literkowo.difficulty',level);
+ document.querySelectorAll('[data-difficulty]').forEach(button=>{
+  const selected=button.dataset.difficulty===level;
+  button.classList.toggle('selected',selected);
+  button.setAttribute('aria-pressed',String(selected));
+ });
+ const description=$('#difficultyDescription');
+ if(description)description.textContent=DIFFICULTIES[level].description;
+ if(state.letter)draw();
+}
+document.querySelectorAll('[data-difficulty]').forEach(button=>{
+ button.addEventListener('click',()=>setDifficulty(button.dataset.difficulty));
+});
 function renderHome(){
  $('#home').hidden=false;$('#practice').hidden=true;$('#letterGrid').innerHTML='';
+ setDifficulty(state.difficulty);
  DATA.alphabet.forEach(ch=>{const b=document.createElement('button');b.className='letter-tile'+(state.completed.includes(ch)?' done':'');b.innerHTML='<span>'+ch+'</span><small>'+(state.completed.includes(ch)?'Ukończona':'Ćwicz')+'</small>';b.addEventListener('click',()=>openLetter(ch));$('#letterGrid').append(b)});
  renderStats();
 }
@@ -91,6 +113,7 @@ function openLetter(ch){
  $('#example').textContent='Przykładowe słowo: '+(DATA.examples[ch]||ch.toLowerCase());
  $('#guideList').innerHTML='';
  const template=templateFor(ch);
+ $('#guideList').hidden=state.difficulty==='memory';
  const guideOverrides={
   A:[
    'Ruch 1: zacznij na szczycie i poprowadź ukośną kreskę w dół po lewej stronie.',
@@ -155,7 +178,11 @@ function openLetter(ch){
  const syllables=vowel?[ch.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>ch.toLowerCase()+x);
  const wordList=DATA.words[ch]||[DATA.examples[ch]];
  fillChips('#syllables',syllables);fillChips('#words',wordList,true);
- $('#feedback').textContent='Zacznij przy pomarańczowym znaczniku. Podążaj za strzałkami. Po ukończeniu fragmentu podświetli się następny.';
+ $('#feedback').textContent=state.difficulty==='guided'
+  ?'Zacznij przy pomarańczowym znaczniku. Podążaj za strzałkami. Po ukończeniu fragmentu podświetli się następny.'
+  :state.difficulty==='outline'
+   ?'Napisz literę, korzystając z konturu. Samodzielnie wybierz miejsce rozpoczęcia i kierunek.'
+   :'Napisz literę z pamięci. Powodzenia!';
  $('#save').disabled=true;draw();
  speak('Litera '+ch);
 }
@@ -234,7 +261,7 @@ function draw(){
  if(!model||!transform||!LETTER_POINTS?.letters?.[state.letter])return;
 
  // Delikatny obrys pozwala rozpoznać literę. Kierunek pokazują duże strzałki.
- if(model.outline && typeof Path2D!=='undefined'){
+ if(state.difficulty!=='memory' && model.outline && typeof Path2D!=='undefined'){
   try{
    ctx.save();
    ctx.translate(transform.offsetX-transform.frameX*transform.scale,transform.offsetY-transform.frameY*transform.scale);
@@ -253,7 +280,7 @@ function draw(){
   const active=i===state.strokes.length;
 
   // Aktywny fragment jest wyraźny, pozostałe fragmenty są tylko podpowiedzią kształtu.
-  if(points.length>1){
+  if(state.difficulty!=='memory' && points.length>1){
    ctx.beginPath();
    points.forEach((p,j)=>j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
    if(isClosedStroke(state.letter,i))ctx.lineTo(points[0].x,points[0].y);
@@ -265,10 +292,11 @@ function draw(){
    ctx.stroke();
    ctx.setLineDash([]);
   }
-  drawDirectionArrow(ctx,points,active,isClosedStroke(state.letter,i));
-
-  // Początek pokazujemy tylko dla aktualnie ćwiczonego fragmentu.
-  drawStartMarker(ctx,points,active,completed);
+  if(state.difficulty==='guided'){
+   drawDirectionArrow(ctx,points,active,isClosedStroke(state.letter,i));
+   // Początek pokazujemy tylko dla aktualnie ćwiczonego fragmentu.
+   drawStartMarker(ctx,points,active,completed);
+  }
  });
 
  // Ślad dziecka jest rysowany nad punktami.
@@ -405,7 +433,7 @@ function evaluate(){
   return;
  }
  if(count<template.length){
-  $('#feedback').textContent='Dobrze! Teraz wykonaj kolejny fragment litery.';
+  $('#feedback').textContent=state.difficulty==='guided'?'Dobrze! Teraz wykonaj kolejny fragment litery.':'Dobrze! Spróbuj wykonać kolejny fragment.';
   return;
  }
  $('#feedback').textContent='Świetnie! Wszystkie punkty zostały połączone we właściwej kolejności.';
