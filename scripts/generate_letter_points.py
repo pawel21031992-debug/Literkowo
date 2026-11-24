@@ -77,12 +77,11 @@ def main():
     source = json.loads(args.input.read_text(encoding="utf-8"))
     letters = {}
     for letter, model in source["letters"].items():
-        letters[letter] = {
-            "strokes": [
-                {"dots": sample_path(stroke["points"], args.spacing),\n                    "press": len(sample_path(stroke["points"], args.spacing)) == 1}
-                for stroke in model["strokes"]
-            ]
-        }
+        strokes = []
+        for stroke in model["strokes"]:
+            dots = sample_path(stroke["points"], args.spacing)
+            strokes.append({"dots": dots, "press": len(dots) == 1})
+        letters[letter] = {"strokes": strokes}
 
     output = {
         "format": "literkowo-letter-points/1",
