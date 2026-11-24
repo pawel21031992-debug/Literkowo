@@ -6,13 +6,20 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: literkowo-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    runs-on: macos-latest
+  validate:
+    name: Walidacja PWA i danych liter
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Wersja Xcode
-        run: xcodebuild -version
+      - uses: actions/checkout@v6
+      - name: Przygotuj Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
       - name: Sprawdź składnię JavaScript PWA
         run: node --check pwa/app.js
       - name: Waliduj ścieżki i ponumerowane punkty wszystkich liter
@@ -22,6 +29,15 @@ jobs:
           node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("pwa/manifest.webmanifest","utf8")); if(!m.name || !m.start_url || !m.display) process.exit(1); console.log("Manifest PWA OK")'
       - name: Sprawdź kompletność plików PWA
         run: test -s pwa/index.html && test -s pwa/styles.css && test -s pwa/app.js && test -s pwa/sw.js && test -s pwa/manifest.webmanifest && test -s pwa/icon.svg
+
+  build:
+    name: Kompilacja natywnej aplikacji iOS
+    runs-on: macos-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v6
+      - name: Wersja Xcode
+        run: xcodebuild -version
       - name: Budowanie aplikacji dla symulatora
         run: xcodebuild -project Literkowo.xcodeproj -scheme Literkowo -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
       - name: Budowanie aplikacji dla fizycznego iPhone'a (bez podpisu)

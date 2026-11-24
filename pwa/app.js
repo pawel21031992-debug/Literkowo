@@ -44,7 +44,16 @@ const $ = (s) => document.querySelector(s);
 const state = { letter: null, strokes: [], current: [], dotProgress:0, size: {w:1,h:1}, completed: load('completed',[]), words: load('words',[]), stars: Number(localStorage.getItem('literkowo.stars')||0), saved:false };
 function load(k,f){try{return JSON.parse(localStorage.getItem('literkowo.'+k))??f}catch{return f}}
 function persist(){localStorage.setItem('literkowo.completed',JSON.stringify(state.completed));localStorage.setItem('literkowo.words',JSON.stringify(state.words));localStorage.setItem('literkowo.stars',String(state.stars));renderStats()}
-function renderStats(){ $('#progress').textContent=state.completed.length+' / 32 liter';}
+function renderStats(){
+ const completedCount=DATA.alphabet.filter(ch=>state.completed.includes(ch)).length;
+ const stars=Number.isFinite(state.stars)?Math.max(0,state.stars):0;
+ $('#progress').textContent=completedCount+' / '+DATA.alphabet.length+' liter';
+ $('#starCount').textContent=stars+' ★';
+ const bar=$('#progressBar');
+ const track=document.querySelector('.progress-track');
+ if(bar)bar.style.width=(completedCount/DATA.alphabet.length*100)+'%';
+ if(track)track.setAttribute('aria-valuenow',String(completedCount));
+ }
 const voiceAudio=new Audio();
 voiceAudio.preload='auto';
 voiceAudio.setAttribute('playsinline','');
@@ -455,8 +464,8 @@ if('serviceWorker' in navigator && location.protocol!=='file:')window.addEventLi
 async function initializeLetterData(){
  try{
   const [pathResponse,pointResponse]=await Promise.all([
-   fetch('./letter-paths.json?v=28'),
-   fetch('./letter-points.json?v=28')
+   fetch('./letter-paths.json?v=29'),
+   fetch('./letter-points.json?v=29')
   ]);
   if(!pathResponse.ok||!pointResponse.ok)throw new Error('Nie udało się pobrać zestawu liter i punktów.');
   const pathData=await pathResponse.json();

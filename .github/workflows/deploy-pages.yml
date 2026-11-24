@@ -26,32 +26,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
         with:
           enablement: true
       - name: Set up Python for Polish speech generation
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      - name: Restore Polish voice and audio cache
+        id: audio-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            .voice
+            pwa/audio
+          key: literkowo-audio-v1-${{ runner.os }}-${{ hashFiles('scripts/generate_literkowo_audio.py','pwa/app.js','pwa/letter-paths.json','pwa/letter-points.json') }}
+          restore-keys: |
+            literkowo-audio-v1-${{ runner.os }}-
       - name: Install audio generation tools
+        if: steps.audio-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           python -m pip install piper-tts
       - name: Download Polish neural voice
+        if: steps.audio-cache.outputs.cache-hit != 'true'
         run: python -m piper.download_voices pl_PL-gosia-medium --data-dir ./.voice
       - name: Generate offline Polish audio clips
+        if: steps.audio-cache.outputs.cache-hit != 'true'
         run: |
           python scripts/generate_literkowo_audio.py \
             --model ./.voice/pl_PL-gosia-medium.onnx \
             --output ./pwa/audio
       - name: Upload PWA
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./pwa
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
