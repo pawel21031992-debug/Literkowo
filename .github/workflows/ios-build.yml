@@ -26,6 +26,8 @@ jobs:
         run: node --test scripts/scoring.test.js
       - name: Waliduj ścieżki i ponumerowane punkty wszystkich liter
         run: python3 scripts/validate_literkowo.py
+      - name: Test regresyjny natywnego wzoru wielkiego A
+        run: python3 scripts/validate_native_a.py
       - name: Sprawdź manifest PWA
         run: |
           node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("pwa/manifest.webmanifest","utf8")); if(!m.name || !m.start_url || !m.display) process.exit(1); console.log("Manifest PWA OK")'
