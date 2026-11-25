@@ -36,3 +36,51 @@
 .case-card span{font-size:13px;color:var(--muted)}
 .case-card.selected{border-color:var(--orange);background:#fff8f1;box-shadow:0 0 0 2px #f28a3520}
 .case-description{margin:0 0 16px;padding:9px 12px;border-radius:12px;background:#f1f0ff;color:#5954a6;font-size:13px;line-height:1.45}
+
+
+/* Spokojna, bardziej barwna paleta: kolor porządkuje interfejs, nie konkuruje z pisaniem. */
+:root{
+ --ink:#25243a;--muted:#625f75;--purple:#514b9a;--pale:#efedff;--orange:#a94f0b;
+ --sky:#eaf5ff;--mint:#eaf6ed;--peach:#fff1df;--lilac:#f0edff;--rose:#fff0f1;
+}
+body{
+ background-color:#fbfaff;
+ background-image:
+  radial-gradient(ellipse at 4% 4%,rgba(255,218,174,.48),transparent 34rem),
+  radial-gradient(ellipse at 96% 16%,rgba(204,228,255,.55),transparent 36rem),
+  radial-gradient(ellipse at 8% 76%,rgba(218,239,220,.42),transparent 32rem),
+  linear-gradient(145deg,#fffdf9 0%,#f8f7ff 52%,#f5faff 100%);
+ background-attachment:fixed;
+}
+.topbar{padding-top:22px}
+.brand{padding:12px 16px;border-radius:18px;background:rgba(255,255,255,.76);border:1px solid rgba(222,219,241,.9)}
+.author-signature{background:#eeeaff;color:#454080}
+.intro{padding:13px 15px;margin:12px 0 8px;border:1px solid rgba(222,219,241,.82);border-radius:17px;background:rgba(255,255,255,.76)}
+.intro h2{color:#37345e}
+.intro p{margin-bottom:2px}
+.letter-tile{background:rgba(255,255,255,.92);border-color:#dedced;box-shadow:0 3px 12px rgba(41,36,90,.055)}
+.letter-tile:nth-child(4n+1){background:#fff7eb;border-color:#f0dfc7}
+.letter-tile:nth-child(4n+2){background:#eff7ff;border-color:#d8e8f5}
+.letter-tile:nth-child(4n+3){background:#f2f0ff;border-color:#e0dcf4}
+.letter-tile:nth-child(4n){background:#eff8f0;border-color:#d8eadb}
+.letter-tile.done{background:#e9f6ec;border-color:#b9ddc2}
+.difficulty-card:nth-child(1){background:#fff7eb}
+.difficulty-card:nth-child(2){background:#eff7ff}
+.difficulty-card:nth-child(3){background:#f2f0ff}
+.difficulty-card.selected{border-color:#a94f0b;box-shadow:0 0 0 2px rgba(169,79,11,.12)}
+.difficulty-card strong,.case-card strong{color:#403b7c}
+.difficulty-card span,.case-card span{color:#514e62}
+.difficulty-description,.case-description{background:#efedff;color:#37336f;border:1px solid #dedaf5}
+.case-card:first-child{background:#fff7eb}
+.case-card:last-child{background:#eff7ff}
+.case-card.selected{border-color:#a94f0b;box-shadow:0 0 0 2px rgba(169,79,11,.12)}
+.guide,.learning{background:rgba(255,255,255,.94);border-color:#e2dfef}
+.canvas-wrap{background:#fff;border-color:#c9c5e4;box-shadow:0 4px 18px rgba(45,40,90,.055)}
+.primary{background:#514b9a}
+.primary:focus-visible,.secondary:focus-visible,.difficulty-card:focus-visible,.case-card:focus-visible,.letter-tile:focus-visible,.next-letter:focus-visible{outline:3px solid #a94f0b;outline-offset:3px}
+.secondary{background:#efedff;color:#403b7c}
+.chip{background:#fff1df;color:#743b0b}
+.progress-track{background:#e5e2f2}
+.progress-track span{background:#b65b13}
+.feedback{color:#514e62}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
