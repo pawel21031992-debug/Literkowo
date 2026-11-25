@@ -478,6 +478,23 @@ function strokeScore(user,expected){
   coverage,matched,total:expected.length,average,startDistance,endDistance
  };
 }
+function outlineStrokeScore(user,expected,letter,index){
+ const variants=[expected.slice()];
+ if(expected.length>2&&isClosedStroke(letter,index)){
+  const ring=expected.slice(0,-1);
+  const start=user[0];
+  let nearestIndex=0,nearestDistance=Infinity;
+  ring.forEach((point,i)=>{const distance=dist(start,point);if(distance<nearestDistance){nearestDistance=distance;nearestIndex=i;}});
+  const rotated=ring.slice(nearestIndex).concat(ring.slice(0,nearestIndex));
+  rotated.push({...rotated[0]});
+  variants.push(rotated);
+  variants.push([rotated[0],...rotated.slice(1,-1).reverse(),{...rotated[0]}]);
+ }else if(expected.length>1){
+  variants.push(expected.slice().reverse());
+ }
+ const scores=variants.map(path=>strokeScore(user,path));
+ return scores.find(score=>score.pass)||scores.sort((a,b)=>(b.coverage||0)-(a.coverage||0)||(a.average||Infinity)-(b.average||Infinity))[0];
+}
 function evaluate(){
  const template=templateFor(state.letter);
  const count=state.strokes.length;
@@ -485,7 +502,9 @@ function evaluate(){
  const index=count-1;
  if(index<0)return;
  const expected=expectedDots(state.letter,index);
- const result=strokeScore(state.strokes[index],expected);
+ const result=state.difficulty==='outline'
+  ?outlineStrokeScore(state.strokes[index],expected,state.letter,index)
+  :strokeScore(state.strokes[index],expected);
  if(!result.pass){
   const guided=state.difficulty==='guided';
   rejectStroke(result.total===1?(guided?'Dotknij pomarańczowego znacznika.':'Dotknij miejsca, w którym należy postawić znak.'):(guided?'Spróbuj ponownie. Zacznij przy pomarańczowym znaczniku i podążaj za strzałkami.':'Spróbuj ponownie. Poprowadź palec wzdłuż kształtu litery.'));
