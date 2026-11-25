@@ -17,7 +17,7 @@ struct Letter: Identifiable, Hashable {
 
     var writingInstructions: [String] {
         let guides: [String: [String]] = [
-            "A": ["Narysuj lewą ukośną linię od góry do dołu.", "Dorysuj prawą ukośną linię od góry do dołu.", "Połącz obie linie krótką kreską w środku."],
+            "A": ["Zacznij na dole po lewej, poprowadź linię do szczytu, a następnie w dół po prawej jednym ciągłym ruchem.", "Dorysuj poprzeczną kreskę od lewej do prawej."],
             "Ą": ["Napisz literę A: dwie ukośne linie.", "Dorysuj poprzeczną kreskę w środku.", "Na końcu dodaj ogonek po prawej stronie."],
             "B": ["Narysuj pionową linię z góry na dół.", "Od góry poprowadź łuk w prawo i wróć do środka.", "Od środka narysuj drugi, dolny łuk."],
             "C": ["Zacznij u góry po prawej stronie.", "Poprowadź duży łuk w lewo i w dół.", "Zakończ łuk u góry po prawej."],
