@@ -7,6 +7,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 POLISH_ALPHABET = list("AĄBCĆDEĘFGHIJKLŁMNŃOÓPRSŚTUWYZŹŻ")
 points = json.loads((ROOT / "pwa/letter-points.json").read_text(encoding="utf-8"))
+paths = json.loads((ROOT / "pwa/letter-paths.json").read_text(encoding="utf-8"))
 letter_source = (ROOT / "Literkowo/Letter.swift").read_text(encoding="utf-8")
 project_source = (ROOT / "Literkowo.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
 
@@ -29,6 +30,8 @@ for line in dictionary_block(letter_source, "let guides: [String: [String]] = ["
 
 if points.get("format") != "literkowo-letter-points/1":
     fail("Unsupported shared letter-points format")
+if paths.get("format") != "literkowo-strokes/1":
+    fail("Unsupported shared letter-paths format")
 if set(guides) != set(POLISH_ALPHABET):
     fail("Native guides do not contain exactly the 32 uppercase Polish letters")
 
@@ -36,8 +39,15 @@ mismatches = {}
 for letter in POLISH_ALPHABET:
     model = points.get("letters", {}).get(letter)
     lowercase = letter.lower()
-    if not model or not points.get("letters", {}).get(lowercase):
+    lower_model = points.get("letters", {}).get(lowercase)
+    if not model or not lower_model:
         fail(f"{letter}: shared data is missing uppercase or lowercase geometry")
+    if letter not in paths.get("letters", {}) or lowercase not in paths.get("letters", {}):
+        fail(f"{letter}: path bounds are missing for uppercase or lowercase geometry")
+    for case_name, case_model in ((letter, model), (lowercase, lower_model)):
+        case_strokes = case_model.get("strokes", [])
+        if not case_strokes or any(not stroke.get("dots") for stroke in case_strokes):
+            fail(f"{case_name}: one or more tracing strokes are empty")
     strokes = len(model.get("strokes", []))
     # Native A intentionally joins the two diagonal strokes into one continuous movement.
     expected = strokes - 1 if letter == "A" else strokes
@@ -56,4 +66,4 @@ for filename in ("letter-points.json", "letter-paths.json"):
         fail(f"{filename} is not registered in the native Xcode project resources")
 
 print(f"OK: {len(POLISH_ALPHABET)} native guides match shared geometry")
-print("OK: uppercase and lowercase source data are present and both JSON files are bundled for iOS")
+print("OK: uppercase and lowercase geometry for all 64 exercises is present and bundled for iOS")
