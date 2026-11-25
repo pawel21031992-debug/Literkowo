@@ -18,11 +18,11 @@ struct ContentView: View {
                         Image(systemName: "star.fill").font(.title2).foregroundStyle(.orange)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Twoje nagrody").font(.headline)
-                            Text("\(progress.stars) gwiazdek • \(progress.completedCount) z 32 liter")
+                            Text("\(progress.stars) gwiazdek • \(progress.completedCount) z 64 ćwiczeń")
                                 .font(.subheadline).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        ProgressView(value: Double(progress.completedCount), total: 32)
+                        ProgressView(value: Double(progress.completedCount), total: 64)
                             .tint(.orange).frame(width: 88)
                     }
                     .padding()
