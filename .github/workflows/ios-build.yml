@@ -22,6 +22,8 @@ jobs:
           python-version: "3.12"
       - name: Sprawdź składnię JavaScript PWA
         run: node --check pwa/app.js
+      - name: Testy mechanizmu oceny pisania
+        run: node --test scripts/scoring.test.js
       - name: Waliduj ścieżki i ponumerowane punkty wszystkich liter
         run: python3 scripts/validate_literkowo.py
       - name: Sprawdź manifest PWA

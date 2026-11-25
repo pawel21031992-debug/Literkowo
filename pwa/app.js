@@ -444,57 +444,9 @@ function refreshDotProgress(){
  }
  state.dotProgress=count;
 }
-function strokeScore(user,expected){
- const tolerance=Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055));
- if(expected.length===1){
-  const nearest=user.reduce((best,p)=>Math.min(best,dist(p,expected[0])),Infinity);
-  const pass=nearest<=tolerance;
-  return {pass,coverage:pass?1:0,matched:pass?1:0,total:1,average:nearest};
- }
- if(user.length<2||expected.length<2)return {pass:false,coverage:0,matched:0,total:expected.length};
- const trace=resampleBySpacing(user,4);
- const startDistance=dist(trace[0],expected[0]);
- const endDistance=dist(trace[trace.length-1],expected[expected.length-1]);
- if(startDistance>tolerance*1.35||endDistance>tolerance*1.35)
-  return {pass:false,coverage:0,matched:0,total:expected.length};
- let matched=0,cursor=0,distanceSum=0;
- for(const dot of expected){
-  let nearest=Infinity,nearestIndex=-1;
-  for(let i=cursor;i<trace.length;i++){
-   const d=dist(trace[i],dot);
-   if(d<nearest){nearest=d;nearestIndex=i;}
-  }
-  if(nearestIndex>=0&&nearest<=tolerance){
-   matched++;
-   distanceSum+=nearest;
-   cursor=Math.min(trace.length-1,nearestIndex+1);
-  }
- }
- const coverage=matched/expected.length;
- const average=matched?distanceSum/matched:Infinity;
- const minimum=expected.length<=5?.70:.76;
- return {
-  pass:coverage>=minimum&&average<=tolerance*.85,
-  coverage,matched,total:expected.length,average,startDistance,endDistance
- };
-}
-function outlineStrokeScore(user,expected,letter,index){
- const variants=[expected.slice()];
- if(expected.length>2&&isClosedStroke(letter,index)){
-  const ring=expected.slice(0,-1);
-  const start=user[0];
-  let nearestIndex=0,nearestDistance=Infinity;
-  ring.forEach((point,i)=>{const distance=dist(start,point);if(distance<nearestDistance){nearestDistance=distance;nearestIndex=i;}});
-  const rotated=ring.slice(nearestIndex).concat(ring.slice(0,nearestIndex));
-  rotated.push({...rotated[0]});
-  variants.push(rotated);
-  variants.push([rotated[0],...rotated.slice(1,-1).reverse(),{...rotated[0]}]);
- }else if(expected.length>1){
-  variants.push(expected.slice().reverse());
- }
- const scores=variants.map(path=>strokeScore(user,path));
- return scores.find(score=>score.pass)||scores.sort((a,b)=>(b.coverage||0)-(a.coverage||0)||(a.average||Infinity)-(b.average||Infinity))[0];
-}
+function scoringTolerance(){return Math.max(14,Math.min(20,Math.min(state.size.w,state.size.h)*.055))}
+function strokeScore(user,expected){return window.LiterkowoScoring.strokeScore(user,expected,scoringTolerance())}
+function outlineStrokeScore(user,expected,letter,index){return window.LiterkowoScoring.outlineStrokeScore(user,expected,{tolerance:scoringTolerance(),closed:isClosedStroke(letter,index)})}
 function evaluate(){
  const template=templateFor(state.letter);
  const count=state.strokes.length;

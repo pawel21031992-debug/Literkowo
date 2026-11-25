@@ -1,0 +1,10 @@
+const test=require('node:test');const assert=require('node:assert/strict');const {strokeScore,outlineStrokeScore}=require('../pwa/scoring.js');
+const line=Array.from({length:21},(_,i)=>({x:i*5,y:0}));
+const reverse=line.slice().reverse();
+test('zalicza prawidłowy ślad przy różnej liczbie próbek',()=>{const sparse=[{x:0,y:0},{x:50,y:0},{x:100,y:0}];assert.equal(strokeScore(sparse,line,16).pass,true)});
+test('odrzuca ślad rozpoczęty daleko od wymaganego punktu',()=>{const shifted=line.map(p=>({x:p.x,y:p.y+60}));assert.equal(strokeScore(shifted,line,16).pass,false)});
+test('poziom średni dopuszcza odwrócony kierunek otwartego ruchu',()=>{assert.equal(outlineStrokeScore(reverse,line,{tolerance:16}).pass,true)});
+test('poziom początkujący zachowuje wymagany kierunek',()=>{assert.equal(strokeScore(reverse,line,16).pass,false)});
+test('poziom średni dopuszcza inny punkt startu zamkniętego kształtu',()=>{const ring=[{x:0,y:0},{x:20,y:0},{x:20,y:20},{x:0,y:20},{x:0,y:0}];const rotated=[{x:20,y:20},{x:0,y:20},{x:0,y:0},{x:20,y:0},{x:20,y:20}];assert.equal(outlineStrokeScore(rotated,ring,{tolerance:16,closed:true}).pass,true)});
+test('pojedynczy punkt jest oceniany w tolerancji',()=>{assert.equal(strokeScore([{x:3,y:4}],[{x:0,y:0}],16).pass,true);assert.equal(strokeScore([{x:30,y:30}],[{x:0,y:0}],16).pass,false)});
+test('odrzuca niepoprawne współrzędne zamiast zaliczać NaN',()=>{assert.equal(strokeScore([{x:NaN,y:0},{x:1,y:1}],line,16).pass,false)});
