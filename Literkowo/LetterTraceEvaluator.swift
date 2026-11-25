@@ -210,7 +210,12 @@ enum LetterTraceEvaluator {
 
     private static func bestScore(user: [CGPoint], expected: [CGPoint], tolerance: CGFloat, closed: Bool) -> StrokeResult {
         if expected.count == 1 {
-            let nearest = user.map { distance($0, expected[0]) }.min() ?? .infinity
+            var nearest = user.map { distance($0, expected[0]) }.min() ?? .infinity
+            // Uwzględnij odcinki między próbkami: szybki ruch palca może minąć
+            // punkt dokładnie, mimo że żadna pojedyncza próbka nie trafiła w kropkę.
+            for pair in zip(user, user.dropFirst()) {
+                nearest = min(nearest, distanceFromPointToSegment(expected[0], pair.0, pair.1))
+            }
             return StrokeResult(pass: nearest <= tolerance, coverage: nearest <= tolerance ? 1 : 0,
                                 average: nearest, error: nearest)
         }
@@ -278,6 +283,17 @@ enum LetterTraceEvaluator {
         let error = (1 - coverage) + (average.isFinite ? average / max(tolerance, 1) : 1)
             + (startDistance + endDistance) / max(tolerance * 10, 1)
         return StrokeResult(pass: pass, coverage: coverage, average: average, error: error)
+    }
+
+    private static func distanceFromPointToSegment(_ point: CGPoint, _ start: CGPoint, _ end: CGPoint) -> CGFloat {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let lengthSquared = dx * dx + dy * dy
+        guard lengthSquared > 0.000001 else { return distance(point, start) }
+        let projection = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared
+        let t = min(1, max(0, projection))
+        let nearest = CGPoint(x: start.x + t * dx, y: start.y + t * dy)
+        return distance(point, nearest)
     }
 
     private static func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {

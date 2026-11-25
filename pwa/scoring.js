@@ -21,11 +21,21 @@ function joinStrokePaths(first,second){
  // Łączy dwie ukośne kreski w jeden płynny ruch: dół-lewo → szczyt → dół-prawo.
  return first.slice().reverse().concat(second.slice(1));
 }
+function pointToSegmentDistance(point,start,end){
+ const dx=end.x-start.x,dy=end.y-start.y,lengthSquared=dx*dx+dy*dy;
+ if(lengthSquared<.000001)return distance(point,start);
+ const t=Math.max(0,Math.min(1,((point.x-start.x)*dx+(point.y-start.y)*dy)/lengthSquared));
+ return distance(point,{x:start.x+t*dx,y:start.y+t*dy});
+}
 function strokeScore(user,expected,tolerance=16){
  if(!Array.isArray(user)||!Array.isArray(expected)||!Number.isFinite(tolerance)||tolerance<=0)return {pass:false,coverage:0,matched:0,total:Array.isArray(expected)?expected.length:0,average:Infinity};
  if(!user.length||!expected.length||[...user,...expected].some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))return {pass:false,coverage:0,matched:0,total:expected.length,average:Infinity};
  if(expected.length===1){
-  const nearest=user.reduce((best,p)=>Math.min(best,distance(p,expected[0])),Infinity),pass=nearest<=tolerance;
+  let nearest=user.reduce((best,p)=>Math.min(best,distance(p,expected[0])),Infinity);
+  // Krótki dotyk może zostać zarejestrowany jako dwa odległe punkty.
+  // Oceniaj również odcinek między próbkami, aby szybki ruch palca nie gubił kropki.
+  for(let i=1;i<user.length;i++)nearest=Math.min(nearest,pointToSegmentDistance(expected[0],user[i-1],user[i]));
+  const pass=nearest<=tolerance;
   return {pass,coverage:pass?1:0,matched:pass?1:0,total:1,average:nearest};
  }
  if(user.length<2||expected.length<2)return {pass:false,coverage:0,matched:0,total:expected.length,average:Infinity};
