@@ -5,6 +5,7 @@ struct LetterPracticeView: View {
     let letter: Letter
     @ObservedObject var progress: ProgressStore
 
+    @State private var lowercaseMode = false
     @State private var paths: [[CGPoint]] = []
     @State private var currentPath: [CGPoint] = []
     @State private var showSaved = false
@@ -12,8 +13,10 @@ struct LetterPracticeView: View {
     @State private var drawingSize: CGSize = CGSize(width: 320, height: 290)
     private let synthesizer = AVSpeechSynthesizer()
 
+    private var activeCharacter: String { lowercaseMode ? letter.lowercase : letter.character }
+
     private var templateStrokes: [[CGPoint]] {
-        LetterTraceTemplate.strokes(for: letter.character, canvasSize: drawingSize)
+        LetterTraceTemplate.strokes(for: activeCharacter, canvasSize: drawingSize)
     }
 
     private var evaluation: LetterTraceEvaluation {
@@ -34,7 +37,7 @@ struct LetterPracticeView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Ćwiczymy literę").font(.headline).foregroundStyle(.secondary)
-                        Text("\(letter.character)  \(letter.lowercase)")
+                        Text(lowercaseMode ? letter.lowercase : letter.character)
                             .font(.system(size: 48, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.indigo)
                     }
@@ -42,6 +45,17 @@ struct LetterPracticeView: View {
                     Button(action: speakLetter) {
                         Label("Posłuchaj", systemImage: "speaker.wave.2.fill")
                     }.buttonStyle(.bordered)
+                }
+
+                Picker("Rodzaj litery", selection: $lowercaseMode) {
+                    Text("Wielka").tag(false)
+                    Text("Mała").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: lowercaseMode) { _ in
+                    paths.removeAll()
+                    currentPath.removeAll()
+                    showSaved = false
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -125,7 +139,7 @@ struct LetterPracticeView: View {
                     .onChange(of: geometry.size) { newSize in drawingSize = newSize }
                 }
                 .frame(height: 290)
-                .accessibilityLabel("Pole do ćwiczenia pisania litery \(letter.character)")
+                .accessibilityLabel("Pole do ćwiczenia pisania litery \(activeCharacter)")
 
                 HStack(spacing: 12) {
                     Button {
@@ -139,7 +153,7 @@ struct LetterPracticeView: View {
 
                     Button {
                         guard hasUsableTrace else { return }
-                        progress.markCompleted(letter)
+                        progress.markCompleted(letter, lowercase: lowercaseMode)
                         showSaved = true
                     } label: {
                         Label("Zapisz ćwiczenie", systemImage: "star.fill")
@@ -161,7 +175,7 @@ struct LetterPracticeView: View {
                     .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
                 }
 
-                if showSaved || progress.isCompleted(letter) {
+                if showSaved || progress.isCompleted(letter, lowercase: lowercaseMode) {
                     Label("Ćwiczenie zapisane. Brawo!", systemImage: "checkmark.seal.fill")
                         .font(.subheadline.weight(.semibold)).foregroundStyle(.green)
                 }
@@ -210,7 +224,7 @@ struct LetterPracticeView: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
     }
 
-    private func speakLetter() { speak(letter.character) }
+    private func speakLetter() { speak(activeCharacter) }
 
     private func speak(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
