@@ -196,6 +196,14 @@ enum LetterTraceEvaluator {
         )
     }
 
+    static func isStrokeValid(user: [CGPoint], template: [CGPoint], canvasSize: CGSize, character: String, index: Int) -> Bool {
+        guard canvasSize.width > 0, canvasSize.height > 0, !user.isEmpty, !template.isEmpty else { return false }
+        let expected = template.map { CGPoint(x: $0.x * canvasSize.width, y: $0.y * canvasSize.height) }
+        let tolerance = max(14, min(20, min(canvasSize.width, canvasSize.height) * 0.055))
+        return bestScore(user: user, expected: expected, tolerance: tolerance,
+                         closed: LetterTraceTemplate.isClosed(character, stroke: index)).pass
+    }
+
     private static func bestScore(user: [CGPoint], expected: [CGPoint], tolerance: CGFloat, closed: Bool) -> StrokeResult {
         if expected.count == 1 {
             let nearest = user.map { distance($0, expected[0]) }.min() ?? .infinity
@@ -216,8 +224,6 @@ enum LetterTraceEvaluator {
             variants.append(rotated)
             var reversed = [rotated[0]] + Array(rotated.dropFirst().dropLast().reversed()) + [rotated[0]]
             if reversed.count == rotated.count { variants.append(reversed) }
-        } else {
-            variants.append(Array(expected.reversed()))
         }
 
         let scores = variants.map { strokeScore(user: user, expected: $0, tolerance: tolerance) }
