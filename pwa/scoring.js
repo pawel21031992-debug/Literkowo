@@ -16,6 +16,11 @@ function resampleBySpacing(points,spacing=4){
  }
  result.push(points[points.length-1]);return result;
 }
+function joinStrokePaths(first,second){
+ if(!Array.isArray(first)||!Array.isArray(second)||!first.length||!second.length)return [];
+ // Łączy dwie ukośne kreski w jeden płynny ruch: dół-lewo → szczyt → dół-prawo.
+ return first.slice().reverse().concat(second.slice(1));
+}
 function strokeScore(user,expected,tolerance=16){
  if(!Array.isArray(user)||!Array.isArray(expected)||!Number.isFinite(tolerance)||tolerance<=0)return {pass:false,coverage:0,matched:0,total:Array.isArray(expected)?expected.length:0,average:Infinity};
  if(!user.length||!expected.length||[...user,...expected].some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))return {pass:false,coverage:0,matched:0,total:expected.length,average:Infinity};
@@ -47,7 +52,7 @@ function outlineStrokeScore(user,expected,{tolerance=16,closed=false}={}){
  const scores=variants.map(path=>strokeScore(user,path,tolerance));
  return scores.find(score=>score.pass)||scores.sort((a,b)=>(b.coverage||0)-(a.coverage||0)||(a.average||Infinity)-(b.average||Infinity))[0];
 }
-const api={strokeScore,outlineStrokeScore};
+const api={strokeScore,outlineStrokeScore,joinStrokePaths};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.LiterkowoScoring=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
