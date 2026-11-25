@@ -344,6 +344,19 @@ function draw(){
  }
  rendered.forEach((points,i)=>{
   if(points.length<1)return;
+  // Kropki nad i/j i pojedyncze znaczniki diakrytyczne mają wyraźny cel dotykowy.
+  if(points.length===1&&state.difficulty!=='memory'){
+   const p=points[0];
+   ctx.save();
+   ctx.beginPath();
+   ctx.arc(p.x,p.y,10,0,Math.PI*2);
+   ctx.fillStyle=i<state.strokes.length?'rgba(42,150,105,.22)':'rgba(232,117,36,.16)';
+   ctx.fill();
+   ctx.lineWidth=2;
+   ctx.strokeStyle=i<state.strokes.length?'#2a9669':'#e87524';
+   ctx.stroke();
+   ctx.restore();
+  }
   const completed=i<state.strokes.length;
   const active=i===state.strokes.length;
 
