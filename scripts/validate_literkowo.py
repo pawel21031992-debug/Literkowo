@@ -61,12 +61,14 @@ def main():
     for letter in expected_letters:
         model = path_letters[letter]
         source_strokes = model.get("strokes", [])
-        if not isinstance(model.get("aspect"), (int, float)) or model["aspect"] <= 0:
+        if not isinstance(model.get("aspect"), (int, float)) or not math.isfinite(model["aspect"]) or model["aspect"] <= 0:
             fail(f"{letter}: aspect ratio must be a positive number")
         bounds = model.get("bounds", {})
         if not all(isinstance(bounds.get(key), (int, float)) and math.isfinite(bounds[key])
                    for key in ("minY", "maxY")) or bounds["minY"] >= bounds["maxY"]:
             fail(f"{letter}: invalid vertical bounds")
+        for stroke_index, stroke in enumerate(source_strokes, start=1):
+            finite_points(stroke.get("points", []), f"{letter}, stroke {stroke_index} source")
         all_y = [point[1] for stroke in source_strokes for point in stroke.get("points", [])]
         if all_y and (min(all_y) < bounds["minY"] - 1e-5 or max(all_y) > bounds["maxY"] + 1e-5):
             fail(f"{letter}: vertical bounds do not contain every path point")
