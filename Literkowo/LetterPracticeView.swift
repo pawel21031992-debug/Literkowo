@@ -13,7 +13,7 @@ struct LetterPracticeView: View {
     private let synthesizer = AVSpeechSynthesizer()
 
     private var templateStrokes: [[CGPoint]] {
-        LetterTraceTemplate.strokes(for: letter.character)
+        LetterTraceTemplate.strokes(for: letter.character, canvasSize: drawingSize)
     }
 
     private var evaluation: LetterTraceEvaluation {

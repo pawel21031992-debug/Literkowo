@@ -26,7 +26,7 @@ jobs:
         run: node --test scripts/scoring.test.js
       - name: Waliduj ścieżki i ponumerowane punkty wszystkich liter
         run: python3 scripts/validate_literkowo.py
-      - name: Test regresyjny natywnego wzoru wielkiego A
+      - name: Walidacja instrukcji i wzorów 32 wielkich liter
         run: python3 scripts/validate_native_a.py
       - name: Sprawdź manifest PWA
         run: |
