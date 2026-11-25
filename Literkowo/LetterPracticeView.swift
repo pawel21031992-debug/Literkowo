@@ -9,6 +9,7 @@ struct LetterPracticeView: View {
     @State private var paths: [[CGPoint]] = []
     @State private var currentPath: [CGPoint] = []
     @State private var showSaved = false
+    @State private var rejectedStrokeMessage: String?
     @State private var selectedWord: String?
     @State private var drawingSize: CGSize = CGSize(width: 320, height: 290)
     private let synthesizer = AVSpeechSynthesizer()
@@ -20,7 +21,7 @@ struct LetterPracticeView: View {
     }
 
     private var evaluation: LetterTraceEvaluation {
-        LetterTraceEvaluator.evaluate(userStrokes: paths, templateStrokes: templateStrokes, canvasSize: drawingSize)
+        LetterTraceEvaluator.evaluate(userStrokes: paths, templateStrokes: templateStrokes, canvasSize: drawingSize, character: activeCharacter)
     }
 
     private var hasUsableTrace: Bool {
@@ -55,6 +56,7 @@ struct LetterPracticeView: View {
                 .onChange(of: lowercaseMode) { _ in
                     paths.removeAll()
                     currentPath.removeAll()
+                    rejectedStrokeMessage = nil
                     showSaved = false
                 }
 
@@ -128,10 +130,20 @@ struct LetterPracticeView: View {
                         .gesture(DragGesture(minimumDistance: 0)
                             .onChanged { value in
                                 showSaved = false
+                                rejectedStrokeMessage = nil
                                 currentPath.append(value.location)
                             }
                             .onEnded { _ in
-                                if !currentPath.isEmpty { paths.append(currentPath) }
+                                if !currentPath.isEmpty {
+                                    let completedStroke = currentPath
+                                    let index = paths.count
+                                    if LetterTraceEvaluator.isStrokeValid(user: completedStroke, template: templateStrokes.indices.contains(index) ? templateStrokes[index] : [], canvasSize: drawingSize, character: activeCharacter, index: index) {
+                                        paths.append(completedStroke)
+                                        rejectedStrokeMessage = nil
+                                    } else {
+                                        rejectedStrokeMessage = "Ten ruch nie pasuje do wzoru. Spróbuj ponownie — wcześniejsze poprawne ruchy pozostają zapisane."
+                                    }
+                                }
                                 currentPath = []
                             })
                     }
@@ -145,6 +157,7 @@ struct LetterPracticeView: View {
                     Button {
                         paths.removeAll()
                         currentPath.removeAll()
+                        rejectedStrokeMessage = nil
                         showSaved = false
                     } label: {
                         Label("Wyczyść", systemImage: "arrow.counterclockwise")
@@ -161,12 +174,12 @@ struct LetterPracticeView: View {
                     }.buttonStyle(.borderedProminent).disabled(!hasUsableTrace)
                 }
 
-                if !paths.isEmpty {
+                if !paths.isEmpty || rejectedStrokeMessage != nil {
                     VStack(alignment: .leading, spacing: 5) {
-                        Label(hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów.", systemImage: hasUsableTrace ? "checkmark.circle" : "pencil")
+                        Label(rejectedStrokeMessage ?? (hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów."), systemImage: rejectedStrokeMessage == nil && hasUsableTrace ? "checkmark.circle" : "pencil")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(hasUsableTrace ? .green : .orange)
-                        Text("\(evaluation.message) Zarejestrowano \(tracePointCount) punktów. Ocena porównuje kształt, kolejność i kierunek ruchów z uproszczonym wzorem.")
+                        Text("\(evaluation.message) Zarejestrowano \(tracePointCount) punktów. Ocena sprawdza pokrycie punktów wzoru, punkt startu, kolejność i kierunek ruchów.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
