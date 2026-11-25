@@ -52,7 +52,8 @@ function outlineStrokeScore(user,expected,{tolerance=16,closed=false}={}){
  const scores=variants.map(path=>strokeScore(user,path,tolerance));
  return scores.find(score=>score.pass)||scores.sort((a,b)=>(b.coverage||0)-(a.coverage||0)||(a.average||Infinity)-(b.average||Infinity))[0];
 }
-const api={strokeScore,outlineStrokeScore,joinStrokePaths};
+function undoLastStroke(strokes){return Array.isArray(strokes)?strokes.slice(0,-1):[]}
+const api={strokeScore,outlineStrokeScore,joinStrokePaths,undoLastStroke};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.LiterkowoScoring=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
