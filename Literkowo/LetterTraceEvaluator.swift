@@ -80,12 +80,16 @@ enum LetterTraceTemplate {
         let offsetY = (Double(canvasSize.height) - frameHeight * scale) / 2
 
         let converted = letter.strokes.map { stroke in
-            stroke.dots.compactMap { point -> CGPoint? in
+            var points = stroke.dots.compactMap { point -> CGPoint? in
                 guard point.count == 2 else { return nil }
                 let x = (offsetX + (point[0] - frameX) * scale) / Double(canvasSize.width)
                 let y = (offsetY + (point[1] - frameY) * scale) / Double(canvasSize.height)
                 return CGPoint(x: x, y: y)
             }
+            if stroke.closed == true, points.count > 1, let first = points.first {
+                points.append(first)
+            }
+            return points
         }
 
         // Zachowujemy natywną, dwuruchową wersję wielkiego A:
