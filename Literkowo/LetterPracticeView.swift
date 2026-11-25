@@ -174,7 +174,7 @@ struct LetterPracticeView: View {
                     }.buttonStyle(.borderedProminent).disabled(!hasUsableTrace)
                 }
 
-                if !paths.isEmpty {
+                if !paths.isEmpty || rejectedStrokeMessage != nil {
                     VStack(alignment: .leading, spacing: 5) {
                         Label(rejectedStrokeMessage ?? (hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów."), systemImage: rejectedStrokeMessage == nil && hasUsableTrace ? "checkmark.circle" : "pencil")
                             .font(.subheadline.weight(.semibold))
