@@ -323,7 +323,7 @@ function draw(){
    if(!points.length)return;
    ctx.beginPath();
    if(points.length===1){
-    ctx.arc(points[0].x,points[0].y,silhouetteWidth/2,0,Math.PI*2);
+    ctx.arc(points[0].x,points[0].y,silhouetteWidth*.36,0,Math.PI*2);
     ctx.fill();
     return;
    }
