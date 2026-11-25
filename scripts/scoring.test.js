@@ -10,3 +10,5 @@ test('pojedynczy punkt jest oceniany w tolerancji',()=>{assert.equal(strokeScore
 test('odrzuca niepoprawne współrzędne zamiast zaliczać NaN',()=>{assert.equal(strokeScore([{x:NaN,y:0},{x:1,y:1}],line,16).pass,false)});
 
 test('poziom średni łączy obie ukośne kreski wielkiego A w jeden ruch /\\',()=>{const left=[{x:15,y:0},{x:10,y:10},{x:5,y:20}],right=[{x:15,y:0},{x:20,y:10},{x:25,y:20}];const joined=require('../pwa/scoring.js').joinStrokePaths(left,right);assert.deepEqual(joined,[{x:5,y:20},{x:10,y:10},{x:15,y:0},{x:20,y:10},{x:25,y:20}]);assert.equal(outlineStrokeScore(joined,joined,{tolerance:2}).pass,true)});
+
+test('cofnięcie usuwa tylko ostatni ruch i nie zmienia historii wejściowej',()=>{const {undoLastStroke}=require('../pwa/scoring.js');const first=[{x:0,y:0},{x:1,y:1}],second=[{x:2,y:2},{x:3,y:3}],history=[first,second];const remaining=undoLastStroke(history);assert.deepEqual(remaining,[first]);assert.equal(history.length,2);assert.deepEqual(undoLastStroke([]),[])});
