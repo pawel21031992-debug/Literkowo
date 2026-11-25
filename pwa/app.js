@@ -142,7 +142,7 @@ function openLetter(ch){
  const base=String(ch).toUpperCase();
  const display=state.letterCase==='lower'?base.toLowerCase():base;
  if(!LETTER_PATHS?.letters?.[display]||!LETTER_POINTS?.letters?.[display]){const intro=$('#home .intro p');if(intro)intro.textContent='Wzory liter nie zostały jeszcze załadowane. Odśwież stronę.';return;}
- state.baseLetter=base;state.letter=display;state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;
+ state.baseLetter=base;state.letter=display;state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;$('#undo').disabled=true;
  $('#home').hidden=true;$('#practice').hidden=false;
  $('#letterTitle').textContent=display;
  $('#example').textContent='Przykładowe słowo: '+(DATA.examples[base]||base.toLowerCase());
@@ -384,7 +384,7 @@ const canvas=$('#drawing');
 let activePointer=null;
 canvas.addEventListener('pointerdown',e=>{if(!state.letter||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();activePointer=e.pointerId;try{canvas.setPointerCapture(e.pointerId)}catch{}state.current=[point(e)];state.dotProgress=0;state.saved=false;$('#save').disabled=true;refreshDotProgress();draw()},{passive:false});
 canvas.addEventListener('pointermove',e=>{if(activePointer!==e.pointerId||!state.current.length)return;e.preventDefault();state.current.push(point(e));refreshDotProgress();draw()},{passive:false});
-function finishStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;if(state.current.length){state.strokes.push(state.current);state.current=[];state.dotProgress=0;draw();evaluate()}}
+function finishStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;if(state.current.length){state.strokes.push(state.current);state.current=[];state.dotProgress=0;$('#undo').disabled=false;draw();evaluate()}}
 function cancelStroke(e){if(e&&activePointer!==e.pointerId)return;activePointer=null;state.current=[];state.dotProgress=0;draw();$('#feedback').textContent='Ruch przerwany. Spróbuj ponownie.'}
 canvas.addEventListener('pointerup',finishStroke);canvas.addEventListener('pointercancel',cancelStroke);
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -479,8 +479,9 @@ function evaluate(){
  $('#feedback').textContent='Świetnie! Wszystkie punkty zostały połączone we właściwej kolejności.';
  $('#save').disabled=false;
 }
-function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
-$('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];state.dotProgress=0;$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
+function rejectStroke(message){state.strokes.pop();state.current=[];state.saved=false;$('#save').disabled=true;$('#undo').disabled=!state.strokes.length;$('#feedback').textContent=message+' Etapy zaliczone wcześniej pozostają zapisane.';draw();}
+$('#undo').addEventListener('click',()=>{if(!state.strokes.length)return;state.strokes=window.LiterkowoScoring.undoLastStroke(state.strokes);state.current=[];state.dotProgress=0;state.saved=false;$('#save').disabled=true;$('#undo').disabled=!state.strokes.length;$('#feedback').textContent='Cofnięto ostatni ruch. Możesz wykonać go ponownie.';draw()});
+$('#clear').addEventListener('click',()=>{state.strokes=[];state.current=[];state.dotProgress=0;state.saved=false;$('#undo').disabled=true;$('#save').disabled=true;$('#feedback').textContent='Wyczyść pole. Zacznij od pierwszego ruchu.';draw()});
 function saveCurrentLetter(){
   if($('#save').disabled)return false;
   const completionKey=state.baseLetter+':'+state.letterCase;

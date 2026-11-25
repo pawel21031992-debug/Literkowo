@@ -84,3 +84,7 @@ body{
 .progress-track span{background:#b65b13}
 .feedback{color:#514e62}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+.actions{flex-wrap:wrap}
+.actions>.secondary{flex:1 1 120px}
+.actions>.primary{flex:1 1 150px}

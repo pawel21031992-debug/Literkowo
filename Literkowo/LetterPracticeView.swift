@@ -174,6 +174,18 @@ struct LetterPracticeView: View {
                     }.buttonStyle(.borderedProminent).disabled(!hasUsableTrace)
                 }
 
+                Button {
+                    guard !paths.isEmpty else { return }
+                    paths.removeLast()
+                    rejectedStrokeMessage = nil
+                    showSaved = false
+                } label: {
+                    Label("Cofnij ostatni ruch", systemImage: "arrow.uturn.backward")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(paths.isEmpty)
+
                 if !paths.isEmpty || rejectedStrokeMessage != nil {
                     VStack(alignment: .leading, spacing: 5) {
                         Label(rejectedStrokeMessage ?? (hasUsableTrace ? "Ślad został zarejestrowany." : "Dorysuj jeszcze kilka fragmentów."), systemImage: rejectedStrokeMessage == nil && hasUsableTrace ? "checkmark.circle" : "pencil")
