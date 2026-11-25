@@ -8,3 +8,5 @@ test('poziom początkujący zachowuje wymagany kierunek',()=>{assert.equal(strok
 test('poziom średni dopuszcza inny punkt startu zamkniętego kształtu',()=>{const ring=[{x:0,y:0},{x:20,y:0},{x:20,y:20},{x:0,y:20},{x:0,y:0}];const rotated=[{x:20,y:20},{x:0,y:20},{x:0,y:0},{x:20,y:0},{x:20,y:20}];assert.equal(outlineStrokeScore(rotated,ring,{tolerance:16,closed:true}).pass,true)});
 test('pojedynczy punkt jest oceniany w tolerancji',()=>{assert.equal(strokeScore([{x:3,y:4}],[{x:0,y:0}],16).pass,true);assert.equal(strokeScore([{x:30,y:30}],[{x:0,y:0}],16).pass,false)});
 test('odrzuca niepoprawne współrzędne zamiast zaliczać NaN',()=>{assert.equal(strokeScore([{x:NaN,y:0},{x:1,y:1}],line,16).pass,false)});
+
+test('poziom średni łączy obie ukośne kreski wielkiego A w jeden ruch /\\',()=>{const left=[{x:15,y:0},{x:10,y:10},{x:5,y:20}],right=[{x:15,y:0},{x:20,y:10},{x:25,y:20}];const joined=require('../pwa/scoring.js').joinStrokePaths(left,right);assert.deepEqual(joined,[{x:5,y:20},{x:10,y:10},{x:15,y:0},{x:20,y:10},{x:25,y:20}]);assert.equal(outlineStrokeScore(joined,joined,{tolerance:2}).pass,true)});

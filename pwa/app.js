@@ -6,7 +6,14 @@ let LETTER_PATHS = null;
 let LETTER_POINTS = null;
 function templateFor(letter){
  const model=LETTER_POINTS?.letters?.[letter];
- return model ? model.strokes.map(s=>s.dots) : [];
+ if(!model)return [];
+ const strokes=model.strokes.map(s=>s.dots);
+ // Na poziomie średnim wielkie A można napisać naturalnym ruchem „/\\”,
+ // a następnie dodać poprzeczkę. Początkujący zachowuje trzy osobne etapy.
+ if(state?.difficulty==='outline'&&letter==='A'&&strokes.length>=3){
+  return [window.LiterkowoScoring.joinStrokePaths(strokes[0],strokes[1]),...strokes.slice(2)];
+ }
+ return strokes;
 }
 function isPressPoint(letter,index){
  return !!LETTER_POINTS?.letters?.[letter]?.strokes?.[index]?.press;
@@ -205,7 +212,10 @@ function openLetter(ch){
    'Ruch 2: dodaj kropkę nad literą.'
   ]
  };
- const steps=(state.letterCase==='upper'?guideOverrides[base]:null)||template.map((stroke,i)=>isPressPoint(display,i)?'Dotknij miejsca, w którym należy postawić znak.':(state.difficulty==='guided'?'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.':'Przyjrzyj się kształtowi i poprowadź palec wzdłuż litery.')+(isClosedStroke(display,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
+ const mediumAsteps=['Ruch 1: jednym ciągłym ruchem narysuj obie ukośne kreski: zacznij na dole po lewej, poprowadź palec do szczytu, a następnie w dół po prawej ( /\\ ).','Ruch 2: narysuj poprzeczną kreskę od lewej do prawej.'];
+ const steps=state.letterCase==='upper'&&base==='A'&&state.difficulty==='outline'
+  ?mediumAsteps
+  :(state.letterCase==='upper'?guideOverrides[base]:null)||template.map((stroke,i)=>isPressPoint(display,i)?'Dotknij miejsca, w którym należy postawić znak.':(state.difficulty==='guided'?'Zacznij przy pomarańczowym znaczniku i prowadź palec zgodnie ze strzałkami.':'Przyjrzyj się kształtowi i poprowadź palec wzdłuż litery.')+(isClosedStroke(display,i)?' Na końcu wróć do początku, aby zamknąć kształt.':''));
  steps.forEach((g,i)=>{const li=document.createElement('li');li.textContent=String(g).replace(/^Ruch [0-9]+: /,i===0?'Najpierw: ':'Następnie: ');$('#guideList').append(li)});
  const vowel='AĄEĘIOÓUY'.includes(base);
  const syllables=vowel?[display.toLowerCase(),'ma','me','mi','mo','mu']:['a','e','i','o','u','y'].map(x=>display.toLowerCase()+x);
