@@ -25,7 +25,7 @@ struct Letter: Identifiable, Hashable {
             "D": ["Narysuj pionową linię z góry na dół.", "Zacznij u góry i jednym łukiem poprowadź linię w prawo, w dół i do podstawy."],
             "E": ["Narysuj pionową linię z góry na dół.", "Dodaj górną kreskę od lewej do prawej.", "Dodaj środkową kreskę od lewej do prawej.", "Dodaj dolną kreskę od lewej do prawej."],
             "Ę": ["Narysuj pionową linię z góry na dół.", "Dodaj górną kreskę od lewej do prawej.", "Dodaj środkową kreskę od lewej do prawej.", "Dodaj dolną kreskę od lewej do prawej.", "Dorysuj ogonek przy dolnej części litery."],
-            "F": ["Narysuj pionową linię z góry na dół.", "Dodaj długą górną kreskę.", "Dodaj krótszą kreskę na środku."],
+            "F": ["Narysuj pionową linię z góry na dół.", "Od górnego końca pionowej linii poprowadź kreskę w prawo.", "Od środka pionowej linii poprowadź krótszą kreskę w prawo."],
             "G": ["Narysuj zaokrąglony kształt litery G, prowadząc łuk zgodnie ze strzałką.", "Dorysuj krótką kreskę w środku, od lewej do prawej."],
             "H": ["Narysuj lewą pionową linię.", "Narysuj prawą pionową linię.", "Połącz je kreską na środku."],
             "I": ["Narysuj górną krótką kreskę.", "Poprowadź pionową linię w dół.", "Dodaj dolną krótką kreskę."],
