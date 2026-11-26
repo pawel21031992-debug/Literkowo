@@ -16,3 +16,6 @@ test('cofnięcie usuwa tylko ostatni ruch i nie zmienia historii wejściowej',()
 test('zalicza kropkę, gdy szybki ruch palca przeciął punkt między próbkami',()=>{const trace=[{x:0,y:0},{x:40,y:0}];assert.equal(strokeScore(trace,[{x:20,y:3}],8).pass,true)});
 test('nie zalicza kropki, gdy ślad tylko przebiega obok niej poza tolerancją',()=>{const trace=[{x:0,y:20},{x:40,y:20}];assert.equal(strokeScore(trace,[{x:20,y:0}],8).pass,false)});
 test('zalicza kropkę przy pojedynczym precyzyjnym dotknięciu',()=>{assert.equal(strokeScore([{x:19,y:2}],[{x:20,y:0}],8).pass,true)});
+
+test('odrzuca ślad z dużym objazdem mimo zaliczenia punktów wzoru',()=>{const detour=[{x:0,y:0},{x:20,y:0},{x:40,y:0},{x:45,y:35},{x:50,y:55},{x:55,y:35},{x:60,y:0},{x:80,y:0},{x:100,y:0}];assert.equal(strokeScore(detour,line,16).pass,false)});
+test('akceptuje niewielkie naturalne odchylenie od linii wzoru',()=>{const slight=[{x:0,y:4},{x:25,y:7},{x:50,y:5},{x:75,y:7},{x:100,y:4}];assert.equal(strokeScore(slight,line,16).pass,true)});
