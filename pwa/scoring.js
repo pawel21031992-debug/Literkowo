@@ -27,6 +27,16 @@ function pointToSegmentDistance(point,start,end){
  const t=Math.max(0,Math.min(1,((point.x-start.x)*dx+(point.y-start.y)*dy)/lengthSquared));
  return distance(point,{x:start.x+t*dx,y:start.y+t*dy});
 }
+function averageTraceDeviation(trace,expected){
+ if(trace.length<1||expected.length<2)return 0;
+ let total=0;
+ for(const point of trace){
+  let nearest=Infinity;
+  for(let i=1;i<expected.length;i++)nearest=Math.min(nearest,pointToSegmentDistance(point,expected[i-1],expected[i]));
+  total+=nearest;
+ }
+ return total/trace.length;
+}
 function strokeScore(user,expected,tolerance=16){
  if(!Array.isArray(user)||!Array.isArray(expected)||!Number.isFinite(tolerance)||tolerance<=0)return {pass:false,coverage:0,matched:0,total:Array.isArray(expected)?expected.length:0,average:Infinity};
  if(!user.length||!expected.length||[...user,...expected].some(p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)))return {pass:false,coverage:0,matched:0,total:expected.length,average:Infinity};
@@ -49,7 +59,11 @@ function strokeScore(user,expected,tolerance=16){
   if(nearestIndex>=0&&nearest<=tolerance){matched++;distanceSum+=nearest;cursor=Math.min(trace.length-1,nearestIndex+1)}
  }
  const coverage=matched/expected.length,average=matched?distanceSum/matched:Infinity,minimum=expected.length<=5?.70:.76;
- return {pass:coverage>=minimum&&average<=tolerance*.85,coverage,matched,total:expected.length,average,startDistance,endDistance};
+ // Ocena w obie strony: nie wystarczy dotknąć wszystkich punktów wzoru,
+ // cały ślad dziecka musi też pozostać blisko właściwej linii.
+ const deviation=averageTraceDeviation(trace,expected);
+ const combinedAverage=Math.max(average,deviation);
+ return {pass:coverage>=minimum&&combinedAverage<=tolerance*.85,coverage,matched,total:expected.length,average:combinedAverage,deviation,startDistance,endDistance};
 }
 function outlineStrokeScore(user,expected,{tolerance=16,closed=false}={}){
  const variants=[expected.slice()];

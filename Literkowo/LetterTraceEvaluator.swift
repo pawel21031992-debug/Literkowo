@@ -278,11 +278,28 @@ enum LetterTraceEvaluator {
         }
         let coverage = CGFloat(matched) / CGFloat(expected.count)
         let average = matched > 0 ? distanceSum / CGFloat(matched) : .infinity
+        // Ocena w obie strony: cały ślad dziecka musi pozostać blisko linii wzoru,
+        // a nie tylko dotknąć kolejnych punktów kontrolnych.
+        let deviation = averageTraceDeviation(trace, expected: expected)
+        let combinedAverage = max(average, deviation)
         let minimum: CGFloat = expected.count <= 5 ? 0.70 : 0.76
-        let pass = coverage >= minimum && average <= tolerance * 0.85
-        let error = (1 - coverage) + (average.isFinite ? average / max(tolerance, 1) : 1)
+        let pass = coverage >= minimum && combinedAverage <= tolerance * 0.85
+        let error = (1 - coverage) + (combinedAverage.isFinite ? combinedAverage / max(tolerance, 1) : 1)
             + (startDistance + endDistance) / max(tolerance * 10, 1)
-        return StrokeResult(pass: pass, coverage: coverage, average: average, error: error)
+        return StrokeResult(pass: pass, coverage: coverage, average: combinedAverage, error: error)
+    }
+
+    private static func averageTraceDeviation(_ trace: [CGPoint], expected: [CGPoint]) -> CGFloat {
+        guard !trace.isEmpty, expected.count >= 2 else { return 0 }
+        var total: CGFloat = 0
+        for point in trace {
+            var nearest = CGFloat.infinity
+            for index in 1..<expected.count {
+                nearest = min(nearest, distanceFromPointToSegment(point, expected[index - 1], expected[index]))
+            }
+            total += nearest
+        }
+        return total / CGFloat(trace.count)
     }
 
     private static func distanceFromPointToSegment(_ point: CGPoint, _ start: CGPoint, _ end: CGPoint) -> CGFloat {
